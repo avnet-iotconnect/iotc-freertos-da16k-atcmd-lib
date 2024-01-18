@@ -11,9 +11,9 @@ This repository contains code that uses the AT command interface provided by the
 
 ### Step 1: Set up Dialog 16200/16600 Device with IoTConnect
 
-Obtain the images for your Dialog 16200/16600-based device.
+Obtain or build the images for your Dialog 16200/16600-based device via the [IoTConnect Dialog 16K SDK repository](https://github.com/avnet-iotconnect/iotc-dialog-da16k-sdk).
 
-Boot and configure it as per the README file:
+Boot and configure it as per the [Quickstart guide](https://github.com/avnet-iotconnect/iotc-dialog-da16k-sdk/blob/main/doc/QUICKSTART.md):
 
 * WiFi connectivity
 * X509 certificates
