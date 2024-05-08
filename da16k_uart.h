@@ -14,9 +14,11 @@
  *
  */
 
-#define DA16K_UART_PARITY_NONE    0
-#define DA16K_UART_PARITY_ODD     1
-#define DA16K_UART_PARITY_EVEN    2
+#define DA16K_UART_PARITY_NONE      0
+#define DA16K_UART_PARITY_ODD       1
+#define DA16K_UART_PARITY_EVEN      2
+
+#define DA16K_UART_TIMEOUT_MS       500
 
 bool uart_init(uint32_t baud, uint32_t bits, uint32_t parity, uint32_t stopbits);
 bool uart_send(const char *src, size_t length);

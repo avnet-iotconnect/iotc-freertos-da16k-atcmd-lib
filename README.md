@@ -1,13 +1,14 @@
-# Dialog 16200/16600 AT Interface Code for FreeRTOS
+# IoTConnect AT Command Client Interface Code for FreeRTOS
 # This repository is currently in proof-of-concept state.
 
 This repository contains code that uses the AT command interface provided by the IoTConnect DA16K SDK to communicate with an Azure IoTConnect environment.
 
-## Currently supported MCU target platforms
+## Currently supported MCU Client platforms
 
 * Renesas CK-RA6M5 v2 Cloud Kit (PMOD connector)
+    * Demo project: https://github.com/avnet-iotconnect/iotc-freertos-CK-RA6M5-V2-atcmd-client
 
-## Setup
+## Setup on a new or existing project
 
 ### Step 1: Set up Dialog 16200/16600 Device with IoTConnect
 
@@ -154,3 +155,11 @@ If you wish to use this code with another platform, it is only necessary to impl
 * `da16k_uart_close`
 
     Uninitializes the UART interface for your platform.
+
+# Limitations
+
+The AT Command Protocol theoretically is able to asynchronously inform the client of changes in connection state, received commands or OTA requests.
+
+Handling these properly asynchronously in a platform-agnostic way is not possible without considerable effort and client specific code.
+
+Since this library focuses on maximum ease of use and ease of implementation, therefore, these functions are not supported.

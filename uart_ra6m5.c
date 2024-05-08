@@ -1,9 +1,13 @@
 /*
- * uart_ck-ra6m5.c
+ * uart_ra6m5.c
  *
  *  Created on: Jan 12, 2024
  *      Author: evoirin
  */
+
+#include "da16k_config.h"
+
+#if defined(DA16K_CONFIG_RENESAS_SCI_UART)
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -21,18 +25,9 @@
 #define _SCI_VECTOR(channel, interrupt) VECTOR_NUMBER_SCI ## channel ## _ ## interrupt
 #define SCI_VECTOR(channel, interrupt) _SCI_VECTOR(channel, interrupt)
 
-/* UART Channel number
- * CK-RA6M5 PMOD1: 9
- * CK-RA6M5 PMOD2: 0
- * Change RA6M5_UART_CHANNEL_NUM according to your HW setup.
- */
+#define RA6M5_UART_CHANNEL_NUM      DA16K_CONFIG_RENESAS_SCI_UART_CHANNEL
 
-#define RA6M5_UART_CHANNEL_PMOD1    9
-#define RA6M5_UART_CHANNEL_PMOD2    0
-
-#define RA6M5_UART_CHANNEL_NUM      RA6M5_UART_CHANNEL_PMOD1
-
-#define RA6M5_UART_TIMEOUT_MS       500
+#define RA6M5_UART_TIMEOUT_MS       DA16K_UART_TIMEOUT_MS
 
 static sci_uart_instance_ctrl_t ra6_uart_ctrl = {0};
 
@@ -161,3 +156,5 @@ bool uart_close() {
 
     return (err == FSP_SUCCESS);
 }
+
+#endif
