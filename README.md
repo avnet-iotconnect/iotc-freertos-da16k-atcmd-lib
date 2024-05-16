@@ -6,7 +6,7 @@ This repository contains code that uses the AT command interface provided by the
 ## Currently supported MCU Client platforms
 
 * Renesas CK-RA6M5 v2 Cloud Kit (PMOD connector)
-    * Demo project: https://github.com/avnet-iotconnect/iotc-freertos-CK-RA6M5-V2-atcmd-client
+    * Demo project: https://github.com/avnet-iotconnect/iotc-freertos-CK-RA6M5-V2-PMOD
 
 ## Setup on a new or existing project
 
