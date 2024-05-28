@@ -5,6 +5,8 @@ This repository contains code that uses the AT command interface provided by the
 
 ## Currently supported MCU Client platforms
 
+* Renesas EK-RA6M4 Evaluation Kit (PMOD connector)
+    * Demo project: https://github.com/avnet-iotconnect/iotc-freertos-EK-RA6M4-PMOD
 * Renesas CK-RA6M5 v2 Cloud Kit (PMOD connector)
     * Demo project: https://github.com/avnet-iotconnect/iotc-freertos-CK-RA6M5-V2-PMOD
 
@@ -32,6 +34,10 @@ It is portable code that should compile and run out of the box, without any modi
 
 Using this code is aimed to be as straight-forward as possible:
 
+* Configure the library (see **Configuration**)
+
+* Include `da16k_comm.h`
+
 * Call `da16k_init` with an empty `da16k_cfg` structure.
 
     At the moment, there are no configurable parameters.
@@ -42,7 +48,37 @@ Using this code is aimed to be as straight-forward as possible:
 
 * Call `da16k_deinit` once you are finished.
 
-### Functions for sending data and supported types
+## Configuration
+
+The library is configured by setting the following define:
+
+`DA16K_CONFIG_FILE`
+
+By setting this define to a file name (e.g. `-DDA16K_CONFIG_FILE="../da16k_comm_config.h"`), you can configure the library using this file.
+
+An example configuration file is provided (`da16k_config_example`).
+
+### Configuration Options: Platforms
+
+The following defines are available to configure for the supported platforms:
+
+* `DA16K_CONFIG_EK_RA6M4` (Renesas EK-RA6M4 Evaluation Kit)
+* `DA16K_CONFIG_CK_RA6M5` (Renesas CK-RA6M5 Cloud Kit, **only v2 supported!**)
+
+### Platform-Specific Configuration Options
+
+* `DA16K_CONFIG_RENESAS_SCI_UART_CHANNEL`
+
+    **Only for `RA6M4` and `RA6M5` platforms.**
+
+    Configures the SCI UART channel to use for communicating with the module. On the supported boards, this is 9 for PMOD1 and 0 for PMOD2.
+
+### Other Options
+
+* `DA16K_PRINT` - Can be defined to point to a printf-style printing function to override printf or platform specific options (useful for debugging)
+
+
+## Functions for sending data and supported types
 
 These are declared in `da16k_comm.h`.
 
@@ -54,11 +90,11 @@ These are declared in `da16k_comm.h`.
 | `da16k_send_int`      | `int64_t`        | INTEGER         |
 | `da16k_send_bool`     | `bool`           | BOOLEAN         |
 
-### Error handling
+## Error handling
 
 The functions return descriptive error codes. Please see the `da16k_err_t` enum in `da16k_comm.h` for details.
 
-## Usage example: Renesas CK-RA6M5 v2 with e² Studio IDE
+# Usage example: Renesas CK-RA6M5 v2 with e² Studio IDE
 
 Imagining a scenario with an existing project (e.g. the Quickstart sample project from Renesas, `quickstart_ck_ra6m5_v2_ep`) on the CK-RA6M5 v2 development board, we wish to connect a Dialog 16600 PMOD module to the **PMOD1** connector and communicate with it. 
 

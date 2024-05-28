@@ -10,7 +10,6 @@
  * Call da16k_init
  */
 
-#include "da16k_config.h"
 #include "da16k_comm.h"
 
 #include <stdio.h>
@@ -64,7 +63,7 @@ static char *da16k_strndup(const char* src, size_t size) {
 
     if (ret) {
         memcpy(ret, src, strSize);
-        ret[strSize];
+        ret[strSize] = '\0';
     }
 
     return ret;
@@ -72,7 +71,6 @@ static char *da16k_strndup(const char* src, size_t size) {
 
 static da16k_err_t da16k_receiveCommandResponse(char *buf, size_t bufSize) {
     size_t receivedChars = 0;
-    char tmpChar;
 
     /* We basically receive characters until we time out, at which point we've hopefully figured out whether or not we've been answered to */
 
@@ -149,17 +147,17 @@ da16k_err_t da16k_getCmd(da16k_cmd_t *cmdToReceive) {
 
         /* Find space to determine whether we have params or not */
 
-        paramPtr = memchr(cmdPtr, ' ',  cmdEndPtr - cmdPtr);
+        paramPtr = memchr(cmdPtr, ' ',  (size_t) (cmdEndPtr - cmdPtr));
 
         if (paramPtr != NULL) {
             /* We have params, split the strings */
 
-            cmdToReceive->command = da16k_strndup(cmdPtr, paramPtr - cmdPtr - 1);
-            cmdToReceive->parameters = da16k_strndup(paramPtr + 1, cmdEndPtr - paramPtr - 1);
+            cmdToReceive->command = da16k_strndup(cmdPtr, (size_t) (paramPtr - cmdPtr - 1));
+            cmdToReceive->parameters = da16k_strndup(paramPtr + 1, (size_t) (cmdEndPtr - paramPtr - 1));
         } else {
             /* No parameter, just command */
             
-            cmdToReceive->command = da16k_strndup(cmdPtr, cmdEndPtr - cmdPtr - 1);
+            cmdToReceive->command = da16k_strndup(cmdPtr, (size_t) (cmdEndPtr - cmdPtr - 1));
             cmdToReceive->parameters = NULL;            
         }
 

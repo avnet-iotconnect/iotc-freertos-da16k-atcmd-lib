@@ -1,14 +1,15 @@
 /*
- * uart_ra6m5.c
+ * uart_ra6mx.c
  *
  *  Created on: Jan 12, 2024
  *      Author: evoirin
  */
 
-#include "da16k_config.h"
+#include "da16k_comm.h"
 
 #if defined(DA16K_CONFIG_RENESAS_SCI_UART)
 
+#include <stdarg.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -25,9 +26,9 @@
 #define _SCI_VECTOR(channel, interrupt) VECTOR_NUMBER_SCI ## channel ## _ ## interrupt
 #define SCI_VECTOR(channel, interrupt) _SCI_VECTOR(channel, interrupt)
 
-#define RA6M5_UART_CHANNEL_NUM      DA16K_CONFIG_RENESAS_SCI_UART_CHANNEL
+#define RA6MX_UART_CHANNEL_NUM      DA16K_CONFIG_RENESAS_SCI_UART_CHANNEL
 
-#define RA6M5_UART_TIMEOUT_MS       DA16K_UART_TIMEOUT_MS
+#define RA6MX_UART_TIMEOUT_MS       DA16K_UART_TIMEOUT_MS
 
 static sci_uart_instance_ctrl_t ra6_uart_ctrl = {0};
 
@@ -52,7 +53,7 @@ static sci_uart_extended_cfg_t ra6_uart_cfg_extend = {
 static bool     g_tx_complete = false;
 static bool     g_rx_complete = false;
 
-static void ra6m5_uart_callback (uart_callback_args_t * p_args)
+static void ra6mx_uart_callback (uart_callback_args_t * p_args)
 {
     /* Handle the UART event */
     switch (p_args->event)
@@ -65,11 +66,11 @@ static void ra6m5_uart_callback (uart_callback_args_t * p_args)
 
 /** UART interface configuration */
 static uart_cfg_t ra6_uart_cfg = {
-                                .channel = RA6M5_UART_CHANNEL_NUM,
+                                .channel = RA6MX_UART_CHANNEL_NUM,
                                 .data_bits = UART_DATA_BITS_8,
                                 .parity = UART_PARITY_OFF,
                                 .stop_bits = UART_STOP_BITS_1,
-                                .p_callback = ra6m5_uart_callback,
+                                .p_callback = ra6mx_uart_callback,
                                 .p_context = NULL,
                                 .p_extend = &ra6_uart_cfg_extend,
                                 .p_transfer_tx = NULL,
@@ -78,10 +79,10 @@ static uart_cfg_t ra6_uart_cfg = {
                                 .txi_ipl = (12),
                                 .tei_ipl = (12),
                                 .eri_ipl = (12),
-                                .rxi_irq = SCI_VECTOR(RA6M5_UART_CHANNEL_NUM, RXI),
-                                .txi_irq = SCI_VECTOR(RA6M5_UART_CHANNEL_NUM, TXI),
-                                .tei_irq = SCI_VECTOR(RA6M5_UART_CHANNEL_NUM, TEI),
-                                .eri_irq = SCI_VECTOR(RA6M5_UART_CHANNEL_NUM, ERI),
+                                .rxi_irq = SCI_VECTOR(RA6MX_UART_CHANNEL_NUM, RXI),
+                                .txi_irq = SCI_VECTOR(RA6MX_UART_CHANNEL_NUM, TXI),
+                                .tei_irq = SCI_VECTOR(RA6MX_UART_CHANNEL_NUM, TEI),
+                                .eri_irq = SCI_VECTOR(RA6MX_UART_CHANNEL_NUM, ERI),
 };
 
 bool uart_init(uint32_t baud, uint32_t bits, uint32_t parity, uint32_t stopbits) {
@@ -119,7 +120,7 @@ bool uart_init(uint32_t baud, uint32_t bits, uint32_t parity, uint32_t stopbits)
         return false;
     }
 
-    ret = R_SCI_UART_CallbackSet(&ra6_uart_ctrl, ra6m5_uart_callback, NULL, NULL);
+    ret = R_SCI_UART_CallbackSet(&ra6_uart_ctrl, ra6mx_uart_callback, NULL, NULL);
 
     return (ret == FSP_SUCCESS);
 }
@@ -137,7 +138,7 @@ bool uart_send(const char *src, size_t length) {
 }
 
 bool uart_recv(char *dst, size_t length) {
-    TickType_t ticksTimeout = xTaskGetTickCount() + pdMS_TO_TICKS(RA6M5_UART_TIMEOUT_MS);
+    TickType_t ticksTimeout = xTaskGetTickCount() + pdMS_TO_TICKS(RA6MX_UART_TIMEOUT_MS);
 
     bool ok = (FSP_SUCCESS == R_SCI_UART_Read(&ra6_uart_ctrl, (uint8_t *) dst, length));
 
@@ -155,6 +156,20 @@ bool uart_close() {
     fsp_err_t err = R_SCI_UART_Close(&ra6_uart_ctrl);
 
     return (err == FSP_SUCCESS);
+}
+
+#endif
+
+#if defined(DA16K_CONFIG_EK_RA6M4)
+#include "usb_console_main.h"
+#define EK_RA6M4_PRINTF_BUFFER_SIZE 512
+
+/*
+ * The USB console on the EK RA6M4 platform lacks a formatted print function, so we implement one ourselves.
+ */
+
+void ek_ra6m4_printf(const char *format, ...) {
+    /* TODO */    
 }
 
 #endif

@@ -13,6 +13,36 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#if defined(DA16K_CONFIG_FILE)
+#include DA16K_CONFIG_FILE
+#else
+#error "Please define DA16K_CONFIG_FILE!"
+#endif
+
+/* Enable generic printf */
+#define DA16K_PRINT             printf
+
+/* Renesas CK-RA6M5 config */
+
+#if defined(DA16K_CONFIG_CK_RA6M5)
+#include "bsp_api.h"
+#include "r_typedefs.h"
+#include "console.h"
+#undef  DA16K_PRINT
+#define DA16K_PRINT                             printf_colour
+#define DA16K_CONFIG_RENESAS_SCI_UART
+#endif
+
+
+#if defined(DA16K_CONFIG_EK_RA6M4)
+#include "bsp_api.h"
+void ek_ra6m4_printf(const char *format, ...);
+#undef  DA16K_PRINT
+#define DA16K_PRINT                             ek_ra6m4_printf
+#define DA16K_CONFIG_RENESAS_SCI_UART
+#endif
+
+
 typedef struct {
     /* TODO FIXME:
         Nothing configurable yet */
