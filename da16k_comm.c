@@ -69,7 +69,7 @@ static char *da16k_strndup(const char* src, size_t size) {
     return ret;
 }
 
-static da16k_err_t da16k_receiveCommandResponse(char *buf, size_t bufSize) {
+static da16k_err_t da16k_receive_command_response(char *buf, size_t bufSize) {
     size_t receivedChars = 0;
 
     /* We basically receive characters until we time out, at which point we've hopefully figured out whether or not we've been answered to */
@@ -91,7 +91,7 @@ static da16k_err_t da16k_receiveCommandResponse(char *buf, size_t bufSize) {
     return DA16K_SUCCESS;
 }
 
-da16k_err_t da16k_getCmd(da16k_cmd_t *cmdToReceive) {
+da16k_err_t da16k_get_cmd(da16k_cmd_t *cmdToReceive) {
     const char expectedResponse[] = "\r\n+NWICGETCMD:";
     const char errorResponse[] = "\r\nERROR:";
     char *expectedResponsePtr = NULL;
@@ -112,7 +112,7 @@ da16k_err_t da16k_getCmd(da16k_cmd_t *cmdToReceive) {
 
     /* Receive the response, length of the expected response, -1 because we don't need to receive a null terminator */
     
-    ret = da16k_receiveCommandResponse(da16k_responseBuffer, sizeof(da16k_responseBuffer));
+    ret = da16k_receive_command_response(da16k_responseBuffer, sizeof(da16k_responseBuffer));
 
     if (ret != DA16K_SUCCESS) {
         return ret;
