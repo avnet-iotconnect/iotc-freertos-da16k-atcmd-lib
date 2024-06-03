@@ -73,7 +73,8 @@ da16k_err_t da16k_send_uint(const char *key, uint64_t value);
 da16k_err_t da16k_send_int(const char *key, int64_t value);
 da16k_err_t da16k_send_bool(const char *key, bool value);
 
-/* Receives the next command from the AT command gateway. The strings here must be free'd after use. */
-da16k_err_t da16k_get_cmd(da16k_cmd_t *cmdToReceive);
+/* Receives the next command from the AT command gateway. Must be destroyed after use (see below.) */
+da16k_err_t da16k_get_cmd(da16k_cmd_t *cmd);
+void        da16k_destroy_cmd(da16k_cmd_t cmd);
 
 #endif /* DA16K_COMM_DA16K_COMM_H_ */

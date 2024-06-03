@@ -182,6 +182,13 @@ da16k_err_t da16k_get_cmd(da16k_cmd_t *cmdToReceive) {
     return ret;
 }
 
+void da16k_destroy_cmd(da16k_cmd_t cmd) {
+    if (cmd.command)
+        vPortFree(cmd.command);
+    if (cmd.parameters)
+        vPortFree(cmd.parameters);
+}
+
 da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
 
     /* TODO: do something with cfg... */
