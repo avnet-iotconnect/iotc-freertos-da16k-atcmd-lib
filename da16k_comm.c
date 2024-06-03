@@ -49,21 +49,21 @@ static void da16k_comm_thread(void *pvParameters);
 static void da16k_destroy_msg(da16k_msg_t msg);
 
 static char *da16k_strdup(const char* src) {
-    size_t strSize = strlen(src) + 1;
-    char *ret = pvPortMalloc(strSize);
+    size_t str_size = strlen(src) + 1;
+    char *ret = pvPortMalloc(str_size);
 
-    if (ret) memcpy(ret, src, strSize);
+    if (ret) memcpy(ret, src, str_size);
 
     return ret;
 }
 
 static char *da16k_strndup(const char* src, size_t size) {
-    size_t strSize = size + 1;
-    char *ret = pvPortMalloc(strSize);
+    size_t str_size = size + 1;
+    char *ret = pvPortMalloc(str_size);
 
     if (ret) {
-        memcpy(ret, src, strSize);
-        ret[strSize] = '\0';
+        memcpy(ret, src, str_size);
+        ret[str_size] = '\0';
     }
 
     return ret;
