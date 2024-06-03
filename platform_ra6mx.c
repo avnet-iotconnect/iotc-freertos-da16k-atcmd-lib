@@ -169,7 +169,8 @@ bool uart_close() {
  */
 
 void ek_ra6m4_printf(const char *format, ...) {
-    /* TODO */    
+    /* TODO */
+    (void) format;
 }
 
 #endif
