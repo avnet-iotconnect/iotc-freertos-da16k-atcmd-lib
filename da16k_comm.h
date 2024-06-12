@@ -22,8 +22,7 @@
 /* Enable generic printf */
 #define DA16K_PRINT             printf
 
-/* Renesas CK-RA6M5 config */
-
+/* Renesas CK-RA6M5 config helper */
 #if defined(DA16K_CONFIG_CK_RA6M5)
 #include "bsp_api.h"
 #include "r_typedefs.h"
@@ -31,17 +30,38 @@
 #undef  DA16K_PRINT
 #define DA16K_PRINT                             printf_colour
 #define DA16K_CONFIG_RENESAS_SCI_UART
+#define DA16K_CONFIG_FREERTOS
 #endif
 
-
+/* Renesas EK-RA6M4 config helper */
 #if defined(DA16K_CONFIG_EK_RA6M4)
 #include "bsp_api.h"
 void ek_ra6m4_printf(const char *format, ...);
 #undef  DA16K_PRINT
 #define DA16K_PRINT                             ek_ra6m4_printf
 #define DA16K_CONFIG_RENESAS_SCI_UART
+#define DA16K_CONFIG_FREERTOS
 #endif
 
+/* FreeRTOS config helper */
+#if defined(DA16K_CONFIG_FREERTOS)
+#if !defined(DA16K_CONFIG_MALLOC_FN)
+#define DA16K_CONFIG_MALLOC_FN pvPortMalloc
+#endif
+
+#if !defined(DA16K_CONFIG_FREE_FN)
+#define DA16K_CONFIG_FREE_FN vPortFree
+#endif
+#endif
+
+/* Generic malloc and free if none else are used */
+#if !defined(DA16K_CONFIG_MALLOC_FN)
+#define DA16K_CONFIG_MALLOC_FN malloc
+#endif
+
+#if !defined(DA16K_CONFIG_FREE_FN)
+#define DA16K_CONFIG_FREE_FN free
+#endif
 
 typedef struct {
     /* TODO FIXME:
@@ -61,17 +81,27 @@ typedef enum e_da16k_err {
 } da16k_err_t;
 
 typedef struct {
+    char *key;
+    char *value;
+} da16k_msg_t;
+
+typedef struct {
     char *command;
     char *parameters;
 } da16k_cmd_t;
 
 da16k_err_t da16k_init(const da16k_cfg_t *cfg);
-void        da16k_deinit();
-da16k_err_t da16k_send_str(const char* key, const char* value);
-da16k_err_t da16k_send_float(const char *key, double value);
-da16k_err_t da16k_send_uint(const char *key, uint64_t value);
-da16k_err_t da16k_send_int(const char *key, int64_t value);
-da16k_err_t da16k_send_bool(const char *key, bool value);
+void        da16k_deinit(void);
+/* Create message struct with given key and value. Must be destroyed after use (see below.) */
+da16k_msg_t *da16k_create_msg_str(const char* key, const char* value);
+da16k_msg_t *da16k_create_msg_float(const char *key, double value);
+da16k_msg_t *da16k_create_msg_uint(const char *key, uint64_t value);
+da16k_msg_t *da16k_create_msg_int(const char *key, int64_t value);
+da16k_msg_t *da16k_create_msg_bool(const char *key, bool value);
+/* Send the message out via AT Commands (does not destroy the message!) */
+da16k_err_t da16k_send_msg(da16k_msg_t *msg);
+/* Destroy message */
+void        da16k_destroy_msg(da16k_msg_t *msg);
 
 /* Receives the next command from the AT command gateway. Must be destroyed after use (see below.) */
 da16k_err_t da16k_get_cmd(da16k_cmd_t *cmd);

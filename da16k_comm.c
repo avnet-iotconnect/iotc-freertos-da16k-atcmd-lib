@@ -25,32 +25,21 @@
 
 #include "da16k_uart.h"
 
-typedef struct {
-    char *key;
-    char *value;
-} da16k_msg_t;
-
-
-FSP_HEADER
-
-#define DA16K_QUEUE_SIZE 32
-
-static QueueHandle_t        da16k_msg_queue_handle                  = NULL;
-static StaticQueue_t        da16k_msg_queue                         = {0};
-static TaskHandle_t         da16k_thread                            = NULL;
-static da16k_msg_t          da16k_queue_storage[DA16K_QUEUE_SIZE]   = {0};
-static const uint32_t       da16k_queue_wait_time_ms                = 500;
-static const size_t         da16k_thread_stack_size                 = 2048;
 static char                 da16k_value_buffer[64]                  = {0};
 static char                 da16k_send_buffer[256];
 static char                 da16k_response_buffer[256];
 
-static void da16k_comm_thread(void *pvParameters);
-static void da16k_destroy_msg(da16k_msg_t msg);
+static void *da16k_malloc(size_t size) {
+    return DA16K_CONFIG_MALLOC_FN(size);
+}
+
+static void da16k_free(void *ptr) {
+    DA16K_CONFIG_FREE_FN(ptr);
+}
 
 static char *da16k_strdup(const char* src) {
     size_t str_size = strlen(src) + 1;
-    char *ret = pvPortMalloc(str_size);
+    char *ret = da16k_malloc(str_size);
 
     if (ret) memcpy(ret, src, str_size);
 
@@ -59,7 +48,7 @@ static char *da16k_strdup(const char* src) {
 
 static char *da16k_strndup(const char* src, size_t size) {
     size_t str_size = size + 1;
-    char *ret = pvPortMalloc(str_size);
+    char *ret = da16k_malloc(str_size);
 
     if (ret) {
         memcpy(ret, src, str_size);
@@ -69,7 +58,7 @@ static char *da16k_strndup(const char* src, size_t size) {
     return ret;
 }
 
-static da16k_err_t da16k_receive_command_response(char *buf, size_t buf_size) {
+static da16k_err_t da16k_receive_full_response(char *buf, size_t buf_size) {
     size_t received_chars = 0;
 
     /* We basically receive characters until we time out, at which point we've hopefully figured out whether or not we've been answered to */
@@ -112,7 +101,7 @@ da16k_err_t da16k_get_cmd(da16k_cmd_t *cmdToReceive) {
 
     /* Receive the response, length of the expected response, -1 because we don't need to receive a null terminator */
     
-    ret = da16k_receive_command_response(da16k_response_buffer, sizeof(da16k_response_buffer));
+    ret = da16k_receive_full_response(da16k_response_buffer, sizeof(da16k_response_buffer));
 
     if (ret != DA16K_SUCCESS) {
         return ret;
@@ -184,9 +173,9 @@ da16k_err_t da16k_get_cmd(da16k_cmd_t *cmdToReceive) {
 
 void da16k_destroy_cmd(da16k_cmd_t cmd) {
     if (cmd.command)
-        vPortFree(cmd.command);
+        da16k_free(cmd.command);
     if (cmd.parameters)
-        vPortFree(cmd.parameters);
+        da16k_free(cmd.parameters);
 }
 
 da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
@@ -194,19 +183,7 @@ da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
     /* TODO: do something with cfg... */
 
     (void) cfg;
-
-    da16k_msg_queue_handle = xQueueCreateStatic(DA16K_QUEUE_SIZE, sizeof(da16k_msg_t), (uint8_t *) da16k_queue_storage, &da16k_msg_queue);
-
-    xTaskCreate(da16k_comm_thread, "DA16K_COMM", da16k_thread_stack_size, NULL, 2, &da16k_thread);
-
-    if (NULL == da16k_msg_queue_handle) {
-        return DA16K_OUT_OF_MEMORY;
-    }
-
-    if (NULL == da16k_thread) {
-        return DA16K_OUT_OF_MEMORY;
-    }
-
+    
     if (!uart_init(115200, 8, DA16K_UART_PARITY_NONE, 1)) {
         return DA16K_UART_ERROR;
     }
@@ -219,43 +196,32 @@ da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
 }
 
 void da16k_deinit() {
-    da16k_msg_t msg;
-
-    vTaskDelete(da16k_thread);
-
-    /* Dealloc all remaining messages in queue before deleting the queue itself */
-
-    while (pdPASS == xQueueReceive(da16k_msg_queue_handle, &msg, 0)) {
-        da16k_destroy_msg(msg);
-    }
-
-    vQueueDelete(da16k_msg_queue_handle);
-
     uart_close();
 }
 
-da16k_err_t da16k_send_str(const char *key, const char *value) {
-
-    da16k_msg_t msg;
+da16k_msg_t *da16k_create_msg_str(const char *key, const char *value) {
+    da16k_msg_t *msg = da16k_malloc(sizeof(da16k_msg_t));
 
     assert (key && value);
 
-    msg.key     = da16k_strdup(key);
-    msg.value   = da16k_strdup(value);
-
-    if (!msg.key || !msg.value) {
-        da16k_destroy_msg(msg);
-        return DA16K_OUT_OF_MEMORY;
-    } else if (pdPASS != xQueueSend(da16k_msg_queue_handle, (void *) &msg, pdMS_TO_TICKS(da16k_queue_wait_time_ms))) {
-        da16k_destroy_msg(msg);
-        return DA16K_QUEUE_FULL;
-    } else {
-        return DA16K_SUCCESS;
+    if (!msg) {
+        DA16K_PRINT("DA16K: Memory allocation for message failed!");
+        return NULL;
     }
 
+    msg->key     = da16k_strdup(key);
+    msg->value   = da16k_strdup(value);
+
+    if (!msg->key || !msg->value) {
+        DA16K_PRINT("DA16K: Memory allocation for key/value failed!");
+        da16k_destroy_msg(msg);
+        return NULL;
+    }
+
+    return msg;
 }
 
-da16k_err_t da16k_send_float(const char *key, double value) {
+da16k_msg_t *da16k_create_msg_float(const char *key, double value) {
 /*     platform might not support float printing :(
  *     snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), "%f", value);*/
     int integer = (int) value;
@@ -263,26 +229,26 @@ da16k_err_t da16k_send_float(const char *key, double value) {
 
     snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), "%d.%03d", integer, abs(decimal));
 
-    return da16k_send_str(key, da16k_value_buffer);
+    return da16k_create_msg_str(key, da16k_value_buffer);
 }
 
-da16k_err_t da16k_send_uint(const char *key, uint64_t value) {
+da16k_msg_t *da16k_create_msg_uint(const char *key, uint64_t value) {
     snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), "%" PRIu64, value);
-    return da16k_send_str(key, da16k_value_buffer);
+    return da16k_create_msg_str(key, da16k_value_buffer);
 }
 
-da16k_err_t da16k_send_int(const char *key, int64_t value) {
+da16k_msg_t *da16k_create_msg_int(const char *key, int64_t value) {
     snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), "%" PRIi64, value);
-    return da16k_send_str(key, da16k_value_buffer);
+    return da16k_create_msg_str(key, da16k_value_buffer);
 }
 
-da16k_err_t da16k_send_bool(const char *key, bool value) {
+da16k_msg_t *da16k_create_msg_bool(const char *key, bool value) {
     snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), value ? "true" : "false");
-    return da16k_send_str(key, da16k_value_buffer);
+    return da16k_create_msg_str(key, da16k_value_buffer);
 }
 
 
-static da16k_err_t da16k_handleMsg(da16k_msg_t msg) {
+da16k_err_t da16k_send_msg(da16k_msg_t *msg) {
     /* Expected response from dialog module is
      *
      * '
@@ -294,14 +260,22 @@ static da16k_err_t da16k_handleMsg(da16k_msg_t msg) {
     static const char expected_response[] = "\r\nOK\r\n\r\n+NWMQMSGSND:1\r\n";
 
     da16k_err_t ret = DA16K_SUCCESS;
-    ssize_t at_msg_length = snprintf(da16k_send_buffer, sizeof(da16k_send_buffer), "AT+NWICMSG %s,%s\r\n", msg.key, msg.value);
+    ssize_t at_msg_length;
+    
+    if (!msg->key || !msg->value) {
+        DA16K_PRINT("DA16K: Invalid message with empty data!\r\n");
+        ret = DA16K_AT_INVALID_MSG;
+        goto error;
+    }
+    
+    at_msg_length = snprintf(da16k_send_buffer, sizeof(da16k_send_buffer), "AT+NWICMSG %s,%s\r\n", msg->key, msg->value);
 
     if (at_msg_length <= 0 || at_msg_length >= (ssize_t) sizeof(da16k_send_buffer)) {
         ret = DA16K_AT_INVALID_MSG;
         goto error;
     }
 
-    DA16K_PRINT("DA16K: Message to DA16K: %s -> %s, ATCMD: %s\r\n", msg.key, msg.value, da16k_send_buffer);
+    DA16K_PRINT("DA16K: Message to DA16K: %s -> %s, ATCMD: %s\r\n", msg->key, msg->value, da16k_send_buffer);
 
     uart_send(da16k_send_buffer, (size_t) at_msg_length);
 
@@ -323,29 +297,9 @@ error:
     return ret;
 }
 
-
-static void da16k_destroy_msg(da16k_msg_t msg) {
-    if (msg.key)
-        vPortFree(msg.key);
-    if (msg.value)
-        vPortFree(msg.value);
-}
-
-void da16k_comm_thread(void *pvParameters) {
-    (void) pvParameters;
-
-    assert(da16k_msg_queue_handle != NULL);
-
-    DA16K_PRINT("DA16K: Comm thread running...r\n");
-
-    while (1) {
-        da16k_msg_t msg;
-
-        if (pdPASS == xQueueReceive(da16k_msg_queue_handle, &msg, da16k_queue_wait_time_ms)) {
-            da16k_handleMsg(msg);
-            da16k_destroy_msg(msg);
-        }
-
-        vTaskDelay(1);
-    }
+void da16k_destroy_msg(da16k_msg_t *msg) {
+    if (msg->key)
+        da16k_free(msg->key);
+    if (msg->value)
+        da16k_free(msg->value);
 }
