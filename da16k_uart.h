@@ -8,9 +8,10 @@
 #ifndef DA16K_COMM_DA16K_UART_H_
 #define DA16K_COMM_DA16K_UART_H_
 
-/* Generic uart commands
+/* Generic uart functionality
  *
- * Link to hardware-specific C-file implementing these functions
+ * Link to hardware-specific C-file implementing these functions.
+ * These functions MUST be implemented by the application.
  *
  */
 

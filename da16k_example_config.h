@@ -5,24 +5,18 @@
 #ifndef DA16K_COMM_DA16K_CONFIG_H_
 #define DA16K_COMM_DA16K_CONFIG_H_
 
-/*
- * Supported Targets
- */
+/* Define a custom printf-style print function for debug messages (default is printf) */
+#define DA16K_PRINT DebugPrint
 
-/* Enable Renesas EK-RA6M4 Eval Kit Target */
-#define DA16K_CONFIG_EK_RA6M4
+/* Default allocator functions are malloc and free, however... */
 
-/* Enable Renesas CK-RA6M5 Cloud Kit Target
-#define DA16K_CONFIG_CK_RA6M5
-*/
+/* This enables vpPortMalloc and vPortFree */
+#define DA16K_CONFIG_FREERTOS
 
-/*
- * Target-specific option
- */
+/* Soon there might be further (RT)OSs supported here */
 
-/* Renesas UART channel for CK-RA6M5/EK-RA6M4: PMOD1 = 9, PMOD2 = 0
- *
- * this MUST reflect your project configuration! */
-#define DA16K_CONFIG_RENESAS_SCI_UART_CHANNEL   9
+/* This overrides any implied alloc functions */
+#define DA16K_MALLOC_FN     MyMalloc
+#define DA16K_FREE_FN       MyFree
 
 #endif /* DA16K_COMM_DA16K_CONFIG_H_ */

@@ -20,27 +20,8 @@
 #endif
 
 /* Enable generic printf */
+#if !defined(DA16K_PRINT)
 #define DA16K_PRINT             printf
-
-/* Renesas CK-RA6M5 config helper */
-#if defined(DA16K_CONFIG_CK_RA6M5)
-#include "bsp_api.h"
-#include "r_typedefs.h"
-#include "console.h"
-#undef  DA16K_PRINT
-#define DA16K_PRINT                             printf_colour
-#define DA16K_CONFIG_RENESAS_SCI_UART
-#define DA16K_CONFIG_FREERTOS
-#endif
-
-/* Renesas EK-RA6M4 config helper */
-#if defined(DA16K_CONFIG_EK_RA6M4)
-#include "bsp_api.h"
-void ek_ra6m4_printf(const char *format, ...);
-#undef  DA16K_PRINT
-#define DA16K_PRINT                             ek_ra6m4_printf
-#define DA16K_CONFIG_RENESAS_SCI_UART
-#define DA16K_CONFIG_FREERTOS
 #endif
 
 /* FreeRTOS config helper */
@@ -90,21 +71,31 @@ typedef struct {
     char *parameters;
 } da16k_cmd_t;
 
-da16k_err_t da16k_init(const da16k_cfg_t *cfg);
-void        da16k_deinit(void);
-/* Create message struct with given key and value. Must be destroyed after use (see below.) */
-da16k_msg_t *da16k_create_msg_str(const char* key, const char* value);
-da16k_msg_t *da16k_create_msg_float(const char *key, double value);
-da16k_msg_t *da16k_create_msg_uint(const char *key, uint64_t value);
-da16k_msg_t *da16k_create_msg_int(const char *key, int64_t value);
-da16k_msg_t *da16k_create_msg_bool(const char *key, bool value);
-/* Send the message out via AT Commands (does not destroy the message!) */
-da16k_err_t da16k_send_msg(da16k_msg_t *msg);
-/* Destroy message */
-void        da16k_destroy_msg(da16k_msg_t *msg);
+/* Init/deinit the library */
+da16k_err_t da16k_init                  (const da16k_cfg_t *cfg);
+void        da16k_deinit                (void);
 
-/* Receives the next command from the AT command gateway. Must be destroyed after use (see below.) */
-da16k_err_t da16k_get_cmd(da16k_cmd_t *cmd);
-void        da16k_destroy_cmd(da16k_cmd_t cmd);
+/* Create message struct with given key and value. Must be destroyed after use (see below.) */
+da16k_msg_t *da16k_create_msg_str       (const char* key, const char* value);
+da16k_msg_t *da16k_create_msg_float     (const char *key, double value);
+da16k_msg_t *da16k_create_msg_uint      (const char *key, uint64_t value);
+da16k_msg_t *da16k_create_msg_int       (const char *key, int64_t value);
+da16k_msg_t *da16k_create_msg_bool      (const char *key, bool value);
+/* Create message struct with given key and value, send it out, and destroy it. Can be used directly.
+ This is intended for basic, non-threaded applications with ease-of-implementation in mind. */
+da16k_err_t da16k_send_msg_direct_str   (const char *key, const char *value);
+da16k_err_t da16k_send_msg_direct_float (const char *key, double value);
+da16k_err_t da16k_send_msg_direct_uint  (const char *key, uint64_t value);
+da16k_err_t da16k_send_msg_direct_int   (const char *key, int64_t value);
+da16k_err_t da16k_send_msg_direct_bool  (const char *key, bool value);
+/* Send the message out via AT Commands (does not destroy the message!) */
+da16k_err_t da16k_send_msg              (da16k_msg_t *msg);
+/* Destroy message */
+void        da16k_destroy_msg           (da16k_msg_t *msg);
+
+/* Receives the next command from the AT command gateway. Must be destroyed after use. */
+da16k_err_t da16k_get_cmd               (da16k_cmd_t *cmd);
+/* Destroy command */
+void        da16k_destroy_cmd           (da16k_cmd_t cmd);
 
 #endif /* DA16K_COMM_DA16K_COMM_H_ */

@@ -34,6 +34,8 @@ It is portable code that should compile and run out of the box, without any modi
 
 Using this code is aimed to be as straight-forward as possible:
 
+* Implement UART functionality for your platform
+
 * Configure the library (see **Configuration**)
 
 * Include `da16k_comm.h`
@@ -48,6 +50,32 @@ Using this code is aimed to be as straight-forward as possible:
 
 * Call `da16k_deinit` once you are finished.
 
+## Must-Implement functions to use this library
+
+If you wish to use this code on any platform, it is only necessary to implement a C file with the following basic functions for communicating via UART, declared in `da16k_uart.h`, and link it.
+
+* `da16k_uart_init`
+
+    Initialize the UART interface for your platform with the given parameters (baud rate, stop bits, bits per byte, parity).
+
+    **Currently you may choose to only implement this function for 115200bps in an 8-n-1 configuration, but this may change in the future.**
+
+* `da16k_uart_read`
+
+    Reads a specified amount of bytes into a buffer.
+    
+    Returns **false** in case of a time-out, which is arbitrary but is recommended to be in the low hundereds of milliseconds.
+
+* `da16k_uart_write`
+
+    Writes a specified amount of bytes from the buffer into the UART.
+
+    Returns **false** in case of a failure.
+
+* `da16k_uart_close`
+
+    Uninitializes the UART interface for your platform.
+
 ## Configuration
 
 The library is configured by setting the following define:
@@ -58,37 +86,52 @@ By setting this define to a file name (e.g. `-DDA16K_CONFIG_FILE="../da16k_comm_
 
 An example configuration file is provided (`da16k_config_example`).
 
-### Configuration Options: Platforms
-
-The following defines are available to configure for the supported platforms:
-
-* `DA16K_CONFIG_EK_RA6M4` (Renesas EK-RA6M4 Evaluation Kit)
-* `DA16K_CONFIG_CK_RA6M5` (Renesas CK-RA6M5 Cloud Kit, **only v2 supported!**)
-
-### Platform-Specific Configuration Options
-
-* `DA16K_CONFIG_RENESAS_SCI_UART_CHANNEL`
-
-    **Only for `RA6M4` and `RA6M5` platforms.**
-
-    Configures the SCI UART channel to use for communicating with the module. On the supported boards, this is 9 for PMOD1 and 0 for PMOD2.
-
 ### Other Options
 
 * `DA16K_PRINT` - Can be defined to point to a printf-style printing function to override printf or platform specific options (useful for debugging)
 
+* `DA16K_CONFIG_FREERTOS` - Can be defined to automatically use FreeRTOS-style memory allocation.
 
-## Functions for sending data and supported types
+* `DA16K_CONFIG_MALLOC_FN` - Can be defined to point to a `malloc`-style memory allocation function to override the default `malloc`. This will override any other implied settings (e.g. from `DA16K_CONFIG_FREERTOS`)
 
-These are declared in `da16k_comm.h`.
+* `DA16K_CONFIG_FREE_FN` - Can be defined to point to a `free`-style memory de-allocation function to override the default `free`. This will override any other implied settings (e.g. from `DA16K_CONFIG_FREERTOS`)
 
-| Function              | Parameter        | IoTConnect Type |
-|-----------------------|------------------|-----------------|
-| `da16k_send_str`      | `const char*`    | STRING          |
-| `da16k_send_float`    | `double`         | DECIMAL         |
-| `da16k_send_uint`     | `uint64_t`       | INTEGER         |
-| `da16k_send_int`      | `int64_t`        | INTEGER         |
-| `da16k_send_bool`     | `bool`           | BOOLEAN         |
+# Using the library (application code)
+
+## Sending out telemetry
+
+Sending out telemetry after the successful initialization is done by serializing (creating) a message (`da16k_msg_t`), sending it and freeing it.
+
+The general principle is as follows:
+
+* Call `da16k_create_msg_*` for the appropriate data type (see below)
+* Call `da16k_send_msg` once you are ready to send it out
+* Call `da16k_destroy_msg` to dispose of it and free the memory
+
+The following are declared in `da16k_comm.h`.
+
+| Function                      | Parameter     | IoTConnect Type |
+|-------------------------------|---------------|-----------------|
+| `da16k_create_msg_str`        | `const char*` | STRING          |
+| `da16k_create_msg_float`      | `double`      | DECIMAL         |
+| `da16k_create_msg_uint`       | `uint64_t`    | INTEGER         |
+| `da16k_create_msg_int`        | `int64_t`     | INTEGER         |
+| `da16k_create_msg_bool`       | `bool`        | BOOLEAN         |
+
+
+## Sending out telemetry directly (simplified direct create-and-send)
+
+If your application is simple, single-threaded or otherwise non-critical, you may choose to send the telemetry out directly.
+
+The following functions create the message, send it and dispose of it internally, and directly return a `da16k_err_t` retrun code.
+
+| Function                      | Parameter     | IoTConnect Type |
+|-------------------------------|---------------|-----------------|
+| `da16k_send_msg_direct_str`   | `const char*` | STRING          |
+| `da16k_send_msg_direct_float` | `double`      | DECIMAL         |
+| `da16k_send_msg_direct_uint`  | `uint64_t`    | INTEGER         |
+| `da16k_send_msg_direct_int`   | `int64_t`     | INTEGER         |
+| `da16k_send_msg_direct_bool`  | `bool`        | BOOLEAN         |
 
 ## Error handling
 
@@ -136,7 +179,7 @@ e² studio has generated the necessary files for the new thread.
 
 * Extend the task with a loop that aggregates all the telemetry attributes in a fixed time window.
 
-* Whenever the data is aggregated, send the attributes using the appropriate `da16k_send_x` functions.
+* Whenever the data is aggregated, send the attributes using the appropriate `da16k_send_msg_direct_x` functions.
 
 ```c
 void telemetry_grabber_entry(void *pvParameters)
@@ -159,38 +202,14 @@ void telemetry_grabber_entry(void *pvParameters)
 
         /* Renesas HS3001 */
 
-        da16k_send_float("hs3001_humidity",    hs300xDataToFloat(&newSensorData.hs300x.hs300x_data.humidity));
-        da16k_send_float("hs3001_temperature", hs300xDataToFloat(&newSensorData.hs300x.hs300x_data.temperature));
+        da16k_send_msg_direct_float("hs3001_humidity",    hs300xDataToFloat(&newSensorData.hs300x.hs300x_data.humidity));
+        da16k_send_msg_direct_float("hs3001_temperature", hs300xDataToFloat(&newSensorData.hs300x.hs300x_data.temperature));
         (...)
     }
 }
 ```
 
 * You now have a functional project that can send telemetry data to IoTConnect using the Dialog 16K module.
-
-## Usage with unsupported MCU platform
-
-If you wish to use this code with another platform, it is only necessary to implement a C file with the following basic functions for communicating via UART, declared in `da16k_uart.h`, and link it.
-
-* `da16k_uart_init`
-
-    Initialize the UART interface for your platform with the given parameters (baud rate, stop bits, bits per byte, parity)
-
-* `da16k_uart_read`
-
-    Reads a specified amount of bytes into a buffer.
-    
-    Returns **false** in case of a time-out, which is arbitrary but should be around 500 milliseconds.
-
-* `da16k_uart_write`
-
-    Writes a specified amount of bytes from the buffer into the UART.
-
-    Returns **false** in case of a failure.
-
-* `da16k_uart_close`
-
-    Uninitializes the UART interface for your platform.
 
 # Limitations
 

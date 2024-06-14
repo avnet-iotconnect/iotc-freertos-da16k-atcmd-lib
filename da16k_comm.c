@@ -25,7 +25,7 @@
 
 #include "da16k_uart.h"
 
-static char                 da16k_value_buffer[64]                  = {0};
+static char                 da16k_value_buffer[64] = {0};
 static char                 da16k_send_buffer[256];
 static char                 da16k_response_buffer[256];
 
@@ -183,7 +183,7 @@ da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
     /* TODO: do something with cfg... */
 
     (void) cfg;
-    
+
     if (!uart_init(115200, 8, DA16K_UART_PARITY_NONE, 1)) {
         return DA16K_UART_ERROR;
     }
@@ -247,6 +247,43 @@ da16k_msg_t *da16k_create_msg_bool(const char *key, bool value) {
     return da16k_create_msg_str(key, da16k_value_buffer);
 }
 
+/* Helper functions for direct sending and destroying (for basic, non-threaded applications) */
+
+static da16k_err_t da16k_check_send_and_destroy_msg(da16k_msg_t *msg) {
+    da16k_err_t ret;
+
+    if (!msg) {
+        return DA16K_OUT_OF_MEMORY;
+    }
+
+    if (!msg->key || !msg->value) {
+        return DA16K_OUT_OF_MEMORY;
+    }
+
+    ret = da16k_send_msg(msg);
+    da16k_destroy_msg(msg);
+    return ret;
+}
+
+da16k_err_t da16k_send_msg_direct_str(const char *key, const char *value) {
+    return da16k_check_send_and_destroy_msg(da16k_create_msg_str(key, value));
+}
+
+da16k_err_t da16k_send_msg_direct_float(const char *key, double value) {
+    return da16k_check_send_and_destroy_msg(da16k_create_msg_float(key, value));
+}
+
+da16k_err_t da16k_send_msg_direct_uint(const char *key, uint64_t value) {
+    return da16k_check_send_and_destroy_msg(da16k_create_msg_uint(key, value));
+}
+
+da16k_err_t da16k_send_msg_direct_int(const char *key, int64_t value) {
+    return da16k_check_send_and_destroy_msg(da16k_create_msg_int(key, value));
+}
+
+da16k_err_t da16k_send_msg_direct_bool(const char *key, bool value) {
+    return da16k_check_send_and_destroy_msg(da16k_create_msg_bool(key, value));
+}
 
 da16k_err_t da16k_send_msg(da16k_msg_t *msg) {
     /* Expected response from dialog module is
@@ -254,7 +291,7 @@ da16k_err_t da16k_send_msg(da16k_msg_t *msg) {
      * '
      * OK
      *
-     * +NWMQMSGSND1
+     * +NWMQMSGSND:1
      * '
      */
     static const char expected_response[] = "\r\nOK\r\n\r\n+NWMQMSGSND:1\r\n";
@@ -283,9 +320,15 @@ da16k_err_t da16k_send_msg(da16k_msg_t *msg) {
 
     /* Receive the response, length of the expected response, -1 because we don't need to receive a null terminator */
     if (uart_recv(da16k_response_buffer, sizeof(expected_response) - 1)) {
-        if (strstr(da16k_response_buffer, expected_response) == NULL) {
+        /* Rudimentary checking in case the buffer is contaminated with other things */
+        if (strstr(da16k_response_buffer, "OK") == NULL) {
             ret = DA16K_AT_FAIL;
         }
+        if (strstr(da16k_response_buffer, "+NWMQMSGSND:1") == NULL) {
+            ret = DA16K_AT_FAIL;
+        }
+        /* TODO: We could be checking the response a lot nicer here, but it's quite complex to deal with asynchronous data filling the buffer. 
+                 A workaround could be simply retrying until we receive the proper response, but this is for the app to decide for now. */
     } else {
         ret = DA16K_AT_TIMEOUT;
     }
