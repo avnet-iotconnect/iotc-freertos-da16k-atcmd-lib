@@ -3,7 +3,7 @@
 
 This repository contains code that uses the AT command interface provided by the IoTConnect DA16K SDK to communicate with an Azure IoTConnect environment.
 
-## Currently supported MCU Client platforms
+## Official MCU client platform implementations using this library:
 
 * Renesas EK-RA6M4 Evaluation Kit (PMOD connector)
     * Demo project: https://github.com/avnet-iotconnect/iotc-freertos-EK-RA6M4-PMOD
