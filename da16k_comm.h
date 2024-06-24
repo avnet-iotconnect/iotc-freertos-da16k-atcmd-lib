@@ -59,6 +59,7 @@ typedef enum e_da16k_err {
     DA16K_AT_RESPONSE_TOO_LONG  = 6,
     DA16K_QUEUE_FULL            = 7,
     DA16K_NO_CMDS               = 8,
+    DA16K_INVALID_PARAMETER     = 9,
 } da16k_err_t;
 
 typedef struct {

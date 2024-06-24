@@ -92,7 +92,10 @@ da16k_err_t da16k_get_cmd(da16k_cmd_t *cmd) {
     da16k_err_t ret = DA16K_SUCCESS;
     ssize_t at_msg_length = snprintf(da16k_send_buffer, sizeof(da16k_send_buffer), "AT+NWICGETCMD\r\n");
 
-    /* DA16K_PRINT("DA16K: Requesting commands. ATCMD: %s", da16k_send_buffer); */
+    if (!cmd) {
+        DA16K_PRINT("Get command: Null parameter\r\n");
+        return DA16K_INVALID_PARAMETER;
+    }
 
     uart_send(da16k_send_buffer, (size_t) at_msg_length);
 
