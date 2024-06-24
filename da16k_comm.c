@@ -80,7 +80,7 @@ static da16k_err_t da16k_receive_full_response(char *buf, size_t buf_size) {
     return DA16K_SUCCESS;
 }
 
-da16k_err_t da16k_get_cmd(da16k_cmd_t *cmdToReceive) {
+da16k_err_t da16k_get_cmd(da16k_cmd_t *cmd) {
     const char expected_response[] = "\r\n+NWICGETCMD:";
     const char error_response[] = "\r\nERROR:";
     char *expected_response_ptr = NULL;
@@ -88,7 +88,6 @@ da16k_err_t da16k_get_cmd(da16k_cmd_t *cmdToReceive) {
     char *cmd_end_ptr = NULL;
     char *error_response_ptr = NULL;
     char *param_ptr = NULL;
-    
     
     da16k_err_t ret = DA16K_SUCCESS;
     ssize_t at_msg_length = snprintf(da16k_send_buffer, sizeof(da16k_send_buffer), "AT+NWICGETCMD\r\n");
@@ -141,13 +140,13 @@ da16k_err_t da16k_get_cmd(da16k_cmd_t *cmdToReceive) {
         if (param_ptr != NULL) {
             /* We have params, split the strings */
 
-            cmdToReceive->command = da16k_strndup(cmd_ptr, (size_t) (param_ptr - cmd_ptr - 1));
-            cmdToReceive->parameters = da16k_strndup(param_ptr + 1, (size_t) (cmd_end_ptr - param_ptr - 1));
+            cmd->command = da16k_strndup(cmd_ptr, (size_t) (param_ptr - cmd_ptr - 1));
+            cmd->parameters = da16k_strndup(param_ptr + 1, (size_t) (cmd_end_ptr - param_ptr - 1));
         } else {
             /* No parameter, just command */
             
-            cmdToReceive->command = da16k_strndup(cmd_ptr, (size_t) (cmd_end_ptr - cmd_ptr - 1));
-            cmdToReceive->parameters = NULL;            
+            cmd->command = da16k_strndup(cmd_ptr, (size_t) (cmd_end_ptr - cmd_ptr - 1));
+            cmd->parameters = NULL;            
         }
 
     } else if (error_response_ptr != NULL) {
