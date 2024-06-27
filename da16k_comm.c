@@ -37,7 +37,7 @@ static void da16k_free(void *ptr) {
     DA16K_CONFIG_FREE_FN(ptr);
 }
 
-static char *da16k_strdup(const char* src) {
+static char *da16k_strdup(const char *src) {
     size_t str_size = strlen(src) + 1;
     char *ret = da16k_malloc(str_size);
 
@@ -46,7 +46,7 @@ static char *da16k_strdup(const char* src) {
     return ret;
 }
 
-static char *da16k_strndup(const char* src, size_t size) {
+static char *da16k_strndup(const char *src, size_t size) {
     size_t str_size = size + 1;
     char *ret = da16k_malloc(str_size);
 
@@ -56,6 +56,48 @@ static char *da16k_strndup(const char* src, size_t size) {
     }
 
     return ret;
+}
+
+static bool da16k_double_to_string(char *buf, size_t buf_size, double value) {
+    long long   integer             = (long long) value;
+    int         chars_written       = snprintf(buf, buf_size, "%lld.", integer);
+    char       *decimal_ptr         = buf + (size_t) chars_written;
+    const char *upper_bound         = buf + buf_size;
+
+    if (chars_written <= 0) {
+        return false;
+    }
+
+    /* Write decimal part, up to 8 chars */
+
+    for (size_t i = 0; i < 8; ++i) {
+        if (decimal_ptr >= upper_bound) {
+            /* Catastrophic failure, abort. */
+            return false;
+        }
+
+        value = (value - (double) integer) * (double) 10;
+        integer = (long long) value;
+        *decimal_ptr = '0' + integer;
+        decimal_ptr++;
+    }
+
+    /* Trim all the trailing zeroes. decimal_ptr points to the null terminator at this moment. */
+
+    decimal_ptr--;
+
+    while ((decimal_ptr > buf) && decimal_ptr[0] == '0') {
+        *decimal_ptr = '\0';
+        decimal_ptr--;
+    }
+
+    /* Don't make it end with a period (e.g. "1.")*/
+
+    if (decimal_ptr[0] == '.') {
+        decimal_ptr[1] = '0';
+    }
+
+    return true;
 }
 
 static da16k_err_t da16k_receive_full_response(char *buf, size_t buf_size) {
@@ -224,13 +266,9 @@ da16k_msg_t *da16k_create_msg_str(const char *key, const char *value) {
 }
 
 da16k_msg_t *da16k_create_msg_float(const char *key, double value) {
-/*     platform might not support float printing :(
+/*     platform might not support float printing :( Else we would do:
  *     snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), "%f", value);*/
-    int integer = (int) value;
-    int decimal = (int) ((value - (double) integer) * 1000.0f);
-
-    snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), "%d.%03d", integer, abs(decimal));
-
+    da16k_double_to_string(da16k_value_buffer, sizeof(da16k_value_buffer, value));
     return da16k_create_msg_str(key, da16k_value_buffer);
 }
 
