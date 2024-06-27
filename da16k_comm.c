@@ -19,10 +19,6 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-
 #include "da16k_uart.h"
 
 static char                 da16k_value_buffer[64] = {0};
