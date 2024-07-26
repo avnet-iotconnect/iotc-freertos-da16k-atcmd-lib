@@ -8,6 +8,9 @@
 #ifndef DA16K_COMM_DA16K_UART_H_
 #define DA16K_COMM_DA16K_UART_H_
 
+#include <stdbool.h>
+#include "da16k_comm.h"
+
 /* Generic uart functionality
  *
  * Link to hardware-specific C-file implementing these functions.

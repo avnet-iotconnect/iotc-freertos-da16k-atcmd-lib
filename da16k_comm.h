@@ -23,6 +23,7 @@
 
 /* Enable generic printf */
 #if !defined(DA16K_PRINT)
+#include <stdio.h>
 #define DA16K_PRINT             printf
 #endif
 
