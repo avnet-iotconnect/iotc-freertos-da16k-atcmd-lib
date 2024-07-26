@@ -19,6 +19,8 @@
 #error "Please define DA16K_CONFIG_FILE!"
 #endif
 
+#include "da16k_platforms.h"
+
 /* Enable generic printf */
 #if !defined(DA16K_PRINT)
 #define DA16K_PRINT             printf

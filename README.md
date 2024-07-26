@@ -84,6 +84,10 @@ By setting this define to a file name (e.g. `-DDA16K_CONFIG_FILE="../da16k_comm_
 
 An example configuration file is provided (`da16k_config_example`).
 
+## Platform-specific configuration parameters
+
+Please refer to [the PLATFORMS document.](./PLATFORMS.md)
+
 ### Other Options
 
 * `DA16K_PRINT` - Can be defined to point to a printf-style printing function to override printf or platform specific options (useful for debugging)
@@ -135,7 +139,7 @@ The following functions create the message, send it and dispose of it internally
 
 The functions return descriptive error codes. Please see the `da16k_err_t` enum in `da16k_comm.h` for details.
 
-# Usage example: Renesas CK-RA6M5 v2 with e² Studio IDE
+# Usage example from scratch: Renesas CK-RA6M5 v2 with e² Studio IDE
 
 Imagining a scenario with an existing project (e.g. the Quickstart sample project from Renesas, `quickstart_ck_ra6m5_v2_ep`) on the CK-RA6M5 v2 development board, we wish to connect a Dialog 16600 PMOD module to the **PMOD1** connector and communicate with it. 
 
