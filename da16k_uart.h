@@ -10,6 +10,7 @@
 
 #include <stdbool.h>
 #include "da16k_comm.h"
+#include "string.h"
 
 /* Generic uart functionality
  *
