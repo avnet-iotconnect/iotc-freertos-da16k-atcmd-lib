@@ -48,9 +48,38 @@
 #define DA16K_CONFIG_FREE_FN free
 #endif
 
+typedef enum {
+    DA16K_IOTC_AZURE    = 0,
+    DA16K_IOTC_AWS      = 1,
+} da16k_iotc_mode_t;
+
 typedef struct {
-    /* TODO FIXME:
-        Nothing configurable yet */
+    da16k_iotc_mode_t   mode;
+    const char         *duid;
+    const char         *env;            /* IoTConnect Environment setting */
+    const char         *root_ca;        /* Root CA     (NULL = rely on existing AT gateway configuration) */
+    const char         *device_cert;    /* Device cert (NULL = rely on existing AT gateway configuration) */
+    const char         *device_key;     /* Device key  (NULL = rely on existing AT gateway configuration) */
+} da16k_iotc_cfg_t;
+
+typedef enum {
+    DA16K_WIFI_OPEN     = 0,
+    DA16K_WIFI_WEP      = 1,
+    DA16K_WIFI_WPA1_2   = 2,
+} da16k_wifi_mode_t;
+
+typedef struct {
+    const char         *ssid;           /* WiFi network name */
+    const char         *key;            /* WiFi network passphrase */
+    da16k_wifi_mode_t   encryption;     /* WiFi encryption type */
+    bool                hidden;         /* WiFi hidden network flag */
+    uint32_t            wifi_connect_timeout_ms;    /* Timeout for WiFi connection in ms (0 = Default) */
+} da16k_wifi_cfg_t;
+
+typedef struct {
+    da16k_iotc_cfg_t   *iotc_config;                /* IoTConnect device config (NULL = rely on existing AT gateway configuration) */
+    da16k_wifi_cfg_t   *wifi_config;                /* (NULL = rely on existing AT gateway configuration) */
+    uint32_t            network_timeout_ms;         /* Timeout for network operations e.g. confirmation on sending telemetry (0=Default) */
 } da16k_cfg_t;
 
 typedef enum e_da16k_err {
