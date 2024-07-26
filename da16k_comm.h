@@ -26,6 +26,7 @@
 
 /* FreeRTOS config helper */
 #if defined(DA16K_CONFIG_FREERTOS)
+#include "FreeRTOS.h"
 #if !defined(DA16K_CONFIG_MALLOC_FN)
 #define DA16K_CONFIG_MALLOC_FN pvPortMalloc
 #endif
@@ -50,16 +51,19 @@ typedef struct {
 } da16k_cfg_t;
 
 typedef enum e_da16k_err {
-    DA16K_SUCCESS               = 0,
-    DA16K_OUT_OF_MEMORY         = 1,
-    DA16K_UART_ERROR            = 2,
-    DA16K_AT_TIMEOUT            = 3,
-    DA16K_AT_FAIL               = 4,
-    DA16K_AT_INVALID_MSG        = 5,
-    DA16K_AT_RESPONSE_TOO_LONG  = 6,
-    DA16K_QUEUE_FULL            = 7,
-    DA16K_NO_CMDS               = 8,
-    DA16K_INVALID_PARAMETER     = 9,
+    DA16K_SUCCESS               = 0,    /* Operation was sucecssful */
+    DA16K_OUT_OF_MEMORY         = 1,    /* A memory allocation in the requested operation has failed */
+    DA16K_UART_ERROR            = 2,    /* The UART send/receive operation has failed */
+    DA16K_TIMEOUT               = 3,    /* A timeout has occured communicating with the AT gateway */
+    DA16K_AT_FAIL               = 4,    /* There was a failure communicating with the AT gateway */
+    DA16K_AT_INVALID_MSG        = 5,    /* The message to be sent is invalid (bad pointer?) */
+    DA16K_AT_MESSAGE_TOO_LONG   = 6,    /* The final, formatted message exceeds the TX buffer size. */
+    DA16K_AT_RESPONSE_TOO_LONG  = 7,    /* The AT gateway has sent a line that exceeds the buffer limits */
+    DA16K_AT_ERROR_CODE         = 8,    /* The AT message response was received correctly but contains an error code */
+    DA16K_AT_NO_OK              = 9,    /* The AT message response was received but the "OK" marker was not */
+    DA16K_NO_CMDS               = 10,   /* No new C2D commands have been sent to the device */
+    DA16K_INVALID_PARAMETER     = 11,   /* The function was called with an invalid parameter */
+    DA16K_NOT_INITIALIZED       = 12,   /* The initialization has failed or not occured yet */
 } da16k_err_t;
 
 typedef struct {
@@ -94,7 +98,10 @@ da16k_err_t da16k_send_msg              (da16k_msg_t *msg);
 /* Destroy message */
 void        da16k_destroy_msg           (da16k_msg_t *msg);
 
-/* Receives the next command from the AT command gateway. Must be destroyed after use. */
+/* Receives the next command from the AT command gateway.
+   If DA16K_SUCCESS is returned, a command was fetched successfully (the struct must be destroyed after use).
+   If DA16K_NO_CMDS is returned, no commands are available at this time.   
+   Other communication or memory-related error codes may occur. */
 da16k_err_t da16k_get_cmd               (da16k_cmd_t *cmd);
 /* Destroy command */
 void        da16k_destroy_cmd           (da16k_cmd_t cmd);

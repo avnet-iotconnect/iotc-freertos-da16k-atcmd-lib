@@ -56,16 +56,14 @@ If you wish to use this code on any platform, it is only necessary to implement 
 
 * `da16k_uart_init`
 
-    Initialize the UART interface for your platform with the given parameters (baud rate, stop bits, bits per byte, parity).
+    Initialize the UART interface for your platform. The connection parameters are: **115200bps in an 8-n-1 configuration.**
 
-    **Currently you may choose to only implement this function for 115200bps in an 8-n-1 configuration, but this may change in the future.**
+* `da16k_uart_get_char`
 
-* `da16k_uart_read`
+    Receives a character.
 
-    Reads a specified amount of bytes into a buffer.
+    It returns a `da16k_err_t`, `DA16K_SUCCESS` on sucecss or any other concievable value on error
     
-    Returns **false** in case of a time-out, which is arbitrary but is recommended to be in the low hundereds of milliseconds.
-
 * `da16k_uart_write`
 
     Writes a specified amount of bytes from the buffer into the UART.
