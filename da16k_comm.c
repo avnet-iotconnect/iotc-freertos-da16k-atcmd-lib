@@ -20,7 +20,15 @@
 
 #include "da16k_uart.h"
 
+/* Default wifi connection timeout, 15 seconds */
+#define DA16K_DEFAULT_WIFI_TIMEOUT_MS 15000
+/* Default IoTC MQTT interaction timeout, 2 seconds */
+#define DA16K_DEFAULT_IOTC_TIMEOUT_MS 2000
+
 static char da16k_value_buffer[64] = {0};
+
+static bool     s_is_configured         = false;
+static uint32_t s_network_timeout_ms    = DA16K_DEFAULT_IOTC_TIMEOUT_MS;
 
 da16k_err_t da16k_get_cmd(da16k_cmd_t *cmd) {
     const char  expected_response[] = "+NWICGETCMD";
@@ -92,16 +100,37 @@ void da16k_destroy_cmd(da16k_cmd_t cmd) {
 }
 
 da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
-    /* TODO: do something with cfg... */
+    da16k_err_t ret = DA16K_SUCCESS;
+
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg);
 
-    (void) cfg;
-
+    /* UART Init */
     if (!da16k_uart_init()) {
         return DA16K_UART_ERROR;
     }
 
-    return DA16K_SUCCESS;
+    /* WiFi init (if requested) */
+    if (cfg->wifi_config) {
+        if (DA16K_SUCCESS != (ret = da16k_set_wifi_config(cfg->wifi_config))) {
+            DA16K_PRINT("WiFi connection failed (%d)\r\n", (int) ret);
+            return ret;
+        }
+    }
+
+    /* IoTC init (if requested) */
+    if (cfg->iotc_config) {
+        if (DA16K_SUCCESS != (ret = da16k_setup_iotc_and_connect(cfg->iotc_config))) {
+            DA16K_PRINT("IoTC connection failed (%d)\r\n", (int) ret);
+            return ret;
+        }
+    }
+
+    /* External network timeout override */
+    if (cfg->network_timeout_ms) {
+        s_network_timeout_ms = cfg->network_timeout_ms;
+    }
+
+    return ret; /* TODO: Check if IoTC is actually connected. */
 }
 
 void da16k_deinit() {
@@ -210,4 +239,66 @@ da16k_err_t da16k_send_msg(da16k_msg_t *msg) {
 
     /* Expected response: OK | +NWMQMSGSND:1 */
     return da16k_at_send_formatted_and_check_success_code(DA16K_UART_TIMEOUT_MS, "+NWMQMSGSND", "AT+NWICMSG %s,%s", msg->key, msg->value);
+}
+
+da16k_err_t da16k_set_iotc_connection_type(da16k_iotc_mode_t type) {
+    return da16k_at_send_formatted_and_check_success_code(DA16K_UART_TIMEOUT_MS, "+NWICCT", "AT+NWICCT %u", (unsigned) type);
+}
+
+da16k_err_t da16k_set_iotc_cpid(const char *cpid) {
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cpid);
+    return da16k_at_send_formatted_and_check_success_code(DA16K_UART_TIMEOUT_MS, "+NWICCPID", "AT+NWICCPID %s", (unsigned) cpid);
+}
+
+da16k_err_t da16k_set_iotc_duid(const char *duid) {
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, duid);
+    return da16k_at_send_formatted_and_check_success_code(DA16K_UART_TIMEOUT_MS, "+NWICDUID", "AT+NWICDUID %s", (unsigned) duid);
+}
+
+da16k_err_t da16k_set_iotc_env(const char *env) {
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, env);
+    return da16k_at_send_formatted_and_check_success_code(DA16K_UART_TIMEOUT_MS, "+NWICENV", "AT+NWICENV %s", (unsigned) env);
+}
+
+da16k_err_t da16k_iotc_start(void) {
+    return da16k_at_send_formatted_and_check_success_code(s_network_timeout_ms, "+NWICSTARTEND", "AT+NWICSTART");
+}
+
+da16k_err_t da16k_iotc_stop(void) {
+    return da16k_at_send_formatted_and_check_success_code(s_network_timeout_ms, "+NWICSTOPEND", "AT+NWICSTOP");
+}
+
+da16k_err_t da16k_iotc_reset(void) {
+    return da16k_at_send_formatted_and_check_success_code(s_network_timeout_ms, "+NWICRESETEND", "AT+NWICRESET");
+}
+
+da16k_err_t da16k_set_wifi_config(const da16k_wifi_cfg_t *cfg) {
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg->ssid);
+    return da16k_at_send_formatted_and_check_success_code(
+        cfg->wifi_connect_timeout_ms ? cfg->wifi_connect_timeout_ms : DA16K_DEFAULT_WIFI_TIMEOUT_MS,    /* Timeout, if present */
+        "+WFJAP", "AT+WFJAPA %s,%s,%d", /* AT Command*/
+        cfg->ssid,                      /* SSID */
+        cfg->key ? cfg->key : "",       /* Passphrase if present, blank if not */
+        cfg->hidden ? 1 : 0);           /* Hidden network flag */
+}
+
+da16k_err_t da16k_setup_iotc_and_connect(const da16k_iotc_cfg_t *cfg) {
+    da16k_err_t ret = DA16K_SUCCESS;
+
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg->cpid);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg->duid);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg->env);
+
+    if (DA16K_SUCCESS != (ret = da16k_iotc_stop()))                 { return ret; }
+
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_cpid(cfg->cpid)))    { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_duid(cfg->duid)))    { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_env(cfg->env)))      { return ret; }
+
+    if (DA16K_SUCCESS != (ret = da16k_iotc_reset()))                { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_iotc_start()))                { return ret; }
+
+    return ret;
 }

@@ -53,32 +53,33 @@ typedef enum {
     DA16K_IOTC_AWS      = 1,
 } da16k_iotc_mode_t;
 
+typedef enum {
+    DA16K_IOTC_AT_X509    = 0
+    /* Token not supported. */
+} da16k_iotc_auth_type_t;
+
 typedef struct {
     da16k_iotc_mode_t   mode;
-    const char         *duid;
-    const char         *env;            /* IoTConnect Environment setting */
+    const char         *cpid;           /* IoTConnect CPID (Key Vault) */
+    const char         *duid;           /* IoTConnect DUID (Key Vault) */
+    const char         *env;            /* IoTConnect Environment setting (Key Vault) */
+
+    /* TODO: These don't have any effect yet.*/
     const char         *root_ca;        /* Root CA     (NULL = rely on existing AT gateway configuration) */
     const char         *device_cert;    /* Device cert (NULL = rely on existing AT gateway configuration) */
     const char         *device_key;     /* Device key  (NULL = rely on existing AT gateway configuration) */
 } da16k_iotc_cfg_t;
 
-typedef enum {
-    DA16K_WIFI_OPEN     = 0,
-    DA16K_WIFI_WEP      = 1,
-    DA16K_WIFI_WPA1_2   = 2,
-} da16k_wifi_mode_t;
-
 typedef struct {
     const char         *ssid;           /* WiFi network name */
-    const char         *key;            /* WiFi network passphrase */
-    da16k_wifi_mode_t   encryption;     /* WiFi encryption type */
+    const char         *key;            /* WiFi network WPA/WPA2 passphrase - NULL for open network. */
     bool                hidden;         /* WiFi hidden network flag */
     uint32_t            wifi_connect_timeout_ms;    /* Timeout for WiFi connection in ms (0 = Default) */
 } da16k_wifi_cfg_t;
 
 typedef struct {
-    da16k_iotc_cfg_t   *iotc_config;                /* IoTConnect device config (NULL = rely on existing AT gateway configuration) */
-    da16k_wifi_cfg_t   *wifi_config;                /* (NULL = rely on existing AT gateway configuration) */
+    da16k_iotc_cfg_t   *iotc_config;    /* IoTConnect device config (NULL = rely on existing AT gateway configuration) */
+    da16k_wifi_cfg_t   *wifi_config;    /* (NULL = rely on existing AT gateway configuration) */
     uint32_t            network_timeout_ms;         /* Timeout for network operations e.g. confirmation on sending telemetry (0=Default) */
 } da16k_cfg_t;
 
@@ -108,34 +109,46 @@ typedef struct {
     char *parameters;
 } da16k_cmd_t;
 
-/* Init/deinit the library */
-da16k_err_t da16k_init                  (const da16k_cfg_t *cfg);
-void        da16k_deinit                (void);
+/*  Init/deinit the library */
+da16k_err_t da16k_init                      (const da16k_cfg_t *cfg);
+void        da16k_deinit                    (void);
 
-/* Create message struct with given key and value. Must be destroyed after use (see below.) */
-da16k_msg_t *da16k_create_msg_str       (const char* key, const char* value);
-da16k_msg_t *da16k_create_msg_float     (const char *key, double value);
-da16k_msg_t *da16k_create_msg_uint      (const char *key, uint64_t value);
-da16k_msg_t *da16k_create_msg_int       (const char *key, int64_t value);
-da16k_msg_t *da16k_create_msg_bool      (const char *key, bool value);
-/* Create message struct with given key and value, send it out, and destroy it. Can be used directly.
- This is intended for basic, non-threaded applications with ease-of-implementation in mind. */
-da16k_err_t da16k_send_msg_direct_str   (const char *key, const char *value);
-da16k_err_t da16k_send_msg_direct_float (const char *key, double value);
-da16k_err_t da16k_send_msg_direct_uint  (const char *key, uint64_t value);
-da16k_err_t da16k_send_msg_direct_int   (const char *key, int64_t value);
-da16k_err_t da16k_send_msg_direct_bool  (const char *key, bool value);
-/* Send the message out via AT Commands (does not destroy the message!) */
-da16k_err_t da16k_send_msg              (da16k_msg_t *msg);
-/* Destroy message */
-void        da16k_destroy_msg           (da16k_msg_t *msg);
+/*  Create message struct with given key and value. Must be destroyed after use (see below.) */
+da16k_msg_t *da16k_create_msg_str           (const char* key, const char* value);
+da16k_msg_t *da16k_create_msg_float         (const char *key, double value);
+da16k_msg_t *da16k_create_msg_uint          (const char *key, uint64_t value);
+da16k_msg_t *da16k_create_msg_int           (const char *key, int64_t value);
+da16k_msg_t *da16k_create_msg_bool          (const char *key, bool value);
+/*  Create message struct with given key and value, send it out, and destroy it. Can be used directly.
+    This is intended for basic, non-threaded applications with ease-of-implementation in mind. */
+da16k_err_t da16k_send_msg_direct_str       (const char *key, const char *value);
+da16k_err_t da16k_send_msg_direct_float     (const char *key, double value);
+da16k_err_t da16k_send_msg_direct_uint      (const char *key, uint64_t value);
+da16k_err_t da16k_send_msg_direct_int       (const char *key, int64_t value);
+da16k_err_t da16k_send_msg_direct_bool      (const char *key, bool value);
+/*  Send the message out via AT Commands (does not destroy the message!) */
+da16k_err_t da16k_send_msg                  (da16k_msg_t *msg);
+/*  Destroy message */
+void        da16k_destroy_msg               (da16k_msg_t *msg);
+/*  IoTConnect configuration/setup
+    These do not have to be called manually unless changed at runtime.
+    da16k_init calls these.  */
+da16k_err_t da16k_set_iotc_connection_type  (da16k_iotc_mode_t type);
+da16k_err_t da16k_set_iotc_cpid             (const char *cpid);
+da16k_err_t da16k_set_iotc_duid             (const char *duid);
+da16k_err_t da16k_set_iotc_env              (const char *env);
+da16k_err_t da16k_iotc_start                (void);
+da16k_err_t da16k_iotc_stop                 (void);
+da16k_err_t da16k_iotc_reset                (void);
+da16k_err_t da16k_set_wifi_config           (const da16k_wifi_cfg_t *cfg);
+da16k_err_t da16k_setup_iotc_and_connect    (const da16k_iotc_cfg_t *cfg);
 
-/* Receives the next command from the AT command gateway.
-   If DA16K_SUCCESS is returned, a command was fetched successfully (the struct must be destroyed after use).
-   If DA16K_NO_CMDS is returned, no commands are available at this time.   
-   Other communication or memory-related error codes may occur. */
-da16k_err_t da16k_get_cmd               (da16k_cmd_t *cmd);
-/* Destroy command */
-void        da16k_destroy_cmd           (da16k_cmd_t cmd);
+/*  Receives the next command from the AT command gateway.
+    If DA16K_SUCCESS is returned, a command was fetched successfully (the struct must be destroyed after use).
+    If DA16K_NO_CMDS is returned, no commands are available at this time.
+    Other communication or memory-related error codes may occur. */
+da16k_err_t da16k_get_cmd                   (da16k_cmd_t *cmd);
+/*  Destroy command */
+void        da16k_destroy_cmd               (da16k_cmd_t cmd);
 
 #endif /* DA16K_COMM_DA16K_COMM_H_ */
