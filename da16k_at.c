@@ -1,5 +1,7 @@
 #include "da16k_private.h"
 
+#include <stdarg.h>
+
 static char da16k_at_send_buffer[256];
 static char da16k_at_response_buffer[512];
 
@@ -128,7 +130,7 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
         ret = da16k_at_get_response_line(da16k_at_response_buffer, buf_size, timeout_ms);
 
         if (ret == DA16K_AT_RESPONSE_TOO_LONG) {
-            DA16K_PRINT("%s: WARNING! RX buffer overflow!\r\nRX Buffer contents:\r\n%s\r\n", __func__, buf);
+            DA16K_PRINT("%s: WARNING! RX buffer overflow!\r\nRX Buffer contents:\r\n%s\r\n", __func__, da16k_at_response_buffer);
         }
 
 

@@ -130,6 +130,7 @@ da16k_err_t da16k_send_msg_direct_bool      (const char *key, bool value);
 da16k_err_t da16k_send_msg                  (da16k_msg_t *msg);
 /*  Destroy message */
 void        da16k_destroy_msg               (da16k_msg_t *msg);
+
 /*  IoTConnect configuration/setup
     These do not have to be called manually unless changed at runtime.
     da16k_init calls these.  */
