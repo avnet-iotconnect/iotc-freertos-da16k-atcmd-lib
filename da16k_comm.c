@@ -245,6 +245,10 @@ da16k_err_t da16k_set_iotc_connection_type(da16k_iotc_mode_t type) {
     return da16k_at_send_formatted_and_check_success(DA16K_UART_TIMEOUT_MS, NULL, "AT+NWICCT %u", (unsigned) type);
 }
 
+da16k_err_t da16k_set_iotc_auth_type(da16k_iotc_auth_type_t type) {
+    return da16k_at_send_formatted_and_check_success(DA16K_UART_TIMEOUT_MS, NULL, "AT+NWICAT %u", (unsigned) type);
+}
+
 da16k_err_t da16k_set_iotc_cpid(const char *cpid) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cpid);
     return da16k_at_send_formatted_and_check_success(DA16K_UART_TIMEOUT_MS, NULL, "AT+NWICCPID %s", cpid);
@@ -291,14 +295,15 @@ da16k_err_t da16k_setup_iotc_and_connect(const da16k_iotc_cfg_t *cfg) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg->duid);
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg->env);
 
-    if (DA16K_SUCCESS != (ret = da16k_iotc_stop()))                 { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_iotc_stop()))                             { return ret; }
 
-    if (DA16K_SUCCESS != (ret = da16k_set_iotc_cpid(cfg->cpid)))    { return ret; }
-    if (DA16K_SUCCESS != (ret = da16k_set_iotc_duid(cfg->duid)))    { return ret; }
-    if (DA16K_SUCCESS != (ret = da16k_set_iotc_env(cfg->env)))      { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_auth_type(DA16K_IOTC_AT_X509)))  { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_cpid(cfg->cpid)))                { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_duid(cfg->duid)))                { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_env(cfg->env)))                  { return ret; }
 
-    if (DA16K_SUCCESS != (ret = da16k_iotc_reset()))                { return ret; }
-    if (DA16K_SUCCESS != (ret = da16k_iotc_start()))                { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_iotc_reset()))                            { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_iotc_start()))                            { return ret; }
 
     return ret;
 }

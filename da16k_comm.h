@@ -135,6 +135,7 @@ void        da16k_destroy_msg               (da16k_msg_t *msg);
     These do not have to be called manually unless changed at runtime.
     da16k_init calls these.  */
 da16k_err_t da16k_set_iotc_connection_type  (da16k_iotc_mode_t type);
+da16k_err_t da16k_set_iotc_auth_type        (da16k_iotc_auth_type_t type);
 da16k_err_t da16k_set_iotc_cpid             (const char *cpid);
 da16k_err_t da16k_set_iotc_duid             (const char *duid);
 da16k_err_t da16k_set_iotc_env              (const char *env);
