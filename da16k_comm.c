@@ -21,14 +21,16 @@
 #include "da16k_uart.h"
 
 /* Default wifi connection timeout, 15 seconds */
-#define DA16K_DEFAULT_WIFI_TIMEOUT_MS 15000
+#define DA16K_DEFAULT_WIFI_TIMEOUT_MS           15000
 /* Default IoTC MQTT interaction timeout, 2 seconds */
-#define DA16K_DEFAULT_IOTC_TIMEOUT_MS 2000
+#define DA16K_DEFAULT_IOTC_TIMEOUT_MS           2000
+/* Default IoTC Connect timeout, 15 seconds */
+#define DA16K_DEFAULT_IOTC_CONNECT_TIMEOUT_MS   15000
 
 static char da16k_value_buffer[64] = {0};
 
-static bool     s_is_configured         = false;
-static uint32_t s_network_timeout_ms    = DA16K_DEFAULT_IOTC_TIMEOUT_MS;
+static uint32_t s_network_timeout_ms        = DA16K_DEFAULT_IOTC_TIMEOUT_MS;
+static uint32_t s_iotc_connect_timeout_ms   = DA16K_DEFAULT_IOTC_CONNECT_TIMEOUT_MS;
 
 da16k_err_t da16k_get_cmd(da16k_cmd_t *cmd) {
     const char  expected_response[] = "+NWICGETCMD";
@@ -122,6 +124,9 @@ da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
         if (DA16K_SUCCESS != (ret = da16k_setup_iotc_and_connect(cfg->iotc_config))) {
             DA16K_PRINT("IoTC connection failed (%d)\r\n", (int) ret);
             return ret;
+        }
+        if (cfg->iotc_config->iotc_connect_timeout_ms) {
+            s_iotc_connect_timeout_ms = cfg->iotc_config->iotc_connect_timeout_ms;
         }
     }
 
@@ -265,7 +270,16 @@ da16k_err_t da16k_set_iotc_env(const char *env) {
 }
 
 da16k_err_t da16k_iotc_start(void) {
-    return da16k_at_send_formatted_and_check_success_code(s_network_timeout_ms, "+NWICSTARTEND", "AT+NWICSTART");
+    da16k_err_t ret = DA16K_SUCCESS;
+    
+    /* Starting consists of two parts: the setup and the actual start. Since decoupling the two from our POV is pointless,
+       we do both of these in this wrapper. */
+
+    ret = da16k_at_send_formatted_and_check_success(s_network_timeout_ms, "+NWICSETUPEND", "AT+NWICSETUP");
+    if (ret == DA16K_SUCCESS) {
+        ret = da16k_at_send_formatted_and_check_success(s_iotc_connect_timeout_ms, "+NWICSTARTEND", "AT+NWICSTART");
+    }
+    return ret;
 }
 
 da16k_err_t da16k_iotc_stop(void) {

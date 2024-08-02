@@ -63,9 +63,9 @@ typedef struct {
     const char         *cpid;           /* IoTConnect CPID (Key Vault) */
     const char         *duid;           /* IoTConnect DUID (Key Vault) */
     const char         *env;            /* IoTConnect Environment setting (Key Vault) */
+    uint32_t            iotc_connect_timeout_ms; /* Timeout for IoTC connection (0 = Default) */
 
     /* TODO: These don't have any effect yet.*/
-    const char         *root_ca;        /* Root CA     (NULL = rely on existing AT gateway configuration) */
     const char         *device_cert;    /* Device cert (NULL = rely on existing AT gateway configuration) */
     const char         *device_key;     /* Device key  (NULL = rely on existing AT gateway configuration) */
 } da16k_iotc_cfg_t;
