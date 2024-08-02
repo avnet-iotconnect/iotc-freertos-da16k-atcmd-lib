@@ -8,21 +8,23 @@
 #ifndef DA16K_COMM_DA16K_UART_H_
 #define DA16K_COMM_DA16K_UART_H_
 
-/* Generic uart commands
+#include <stdbool.h>
+#include "da16k_comm.h"
+#include "string.h"
+
+/* Generic uart functionality
  *
- * Link to hardware-specific C-file implementing these functions
+ * Link to hardware-specific C-file implementing these functions.
+ * These functions MUST be implemented by the application.
  *
  */
 
-#define DA16K_UART_PARITY_NONE      0
-#define DA16K_UART_PARITY_ODD       1
-#define DA16K_UART_PARITY_EVEN      2
-
+#define DA16K_UART_BAUD_RATE        115200
 #define DA16K_UART_TIMEOUT_MS       500
 
-bool uart_init(uint32_t baud, uint32_t bits, uint32_t parity, uint32_t stopbits);
-bool uart_send(const char *src, size_t length);
-bool uart_recv(char *dst, size_t length);
-bool uart_close();
+bool        da16k_uart_init();
+bool        da16k_uart_send(const char *src, size_t length);
+da16k_err_t da16k_uart_get_char(char *dst, uint32_t timeout_ms);
+void        da16k_uart_close(void);
 
 #endif /* DA16K_COMM_DA16K_UART_H_ */
