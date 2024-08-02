@@ -35,6 +35,10 @@ bool    da16k_double_to_string  (char *buf, size_t buf_size, volatile double val
         > ERROR:7
         > OK
     would put "7" into the internal response buffer. 
+
+    If expected_response is NULL, only an incoming "OK" will be verified, nothing else.
+    In this case, an incoming OK will automatically be interpreted as success and response parsing will stop there.
+    This is useful for commands that expect nothing other than an "OK".
     
     On DA16K_SUCCESS, the response can then be obtained either as a string or integer. */
 da16k_err_t da16k_at_receive_and_validate_response          (bool error_possible, const char *expected_response, uint32_t timeout_ms);
@@ -45,10 +49,13 @@ da16k_err_t da16k_at_send_formatted_msg                     (const char *format,
 /*  AT Commands that get a simple +EXAMPLE:<x> response and <x> is expected to be 1 for success
     can use this wrapper to do everything in a single function call to aid readability and code deduplication.
 
+    It can also be used by commands that do not return a response other than "OK".
+    In this case, expected_response may be set to NULL, and only an incoming "OK" will be verified, nothing else.
+
     The repsonse does not to be validated or retreived by the caller.
 
     returns DA16K_SUCCESS if the command was sent out successfully, the response was proper and had a return code of 1. */
-da16k_err_t da16k_at_send_formatted_and_check_success_code  (uint32_t timeout_ms, const char *expected_response, const char *format, ...);
+da16k_err_t da16k_at_send_formatted_and_check_success       (uint32_t timeout_ms, const char *expected_response, const char *format, ...);
 /*  Copy out the full, final, parsed response string into a new buffer. Will allocate. 
     WARNING: Only call this after a previous call to send a message yielded success. */
 char       *da16k_at_get_response_str                       (void);

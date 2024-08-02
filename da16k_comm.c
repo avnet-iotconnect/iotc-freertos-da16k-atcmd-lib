@@ -238,26 +238,26 @@ da16k_err_t da16k_send_msg(da16k_msg_t *msg) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg->value);
 
     /* Expected response: OK | +NWMQMSGSND:1 */
-    return da16k_at_send_formatted_and_check_success_code(DA16K_UART_TIMEOUT_MS, "+NWMQMSGSND", "AT+NWICMSG %s,%s", msg->key, msg->value);
+    return da16k_at_send_formatted_and_check_success(DA16K_UART_TIMEOUT_MS, NULL, "AT+NWICMSG %s,%s", msg->key, msg->value);
 }
 
 da16k_err_t da16k_set_iotc_connection_type(da16k_iotc_mode_t type) {
-    return da16k_at_send_formatted_and_check_success_code(DA16K_UART_TIMEOUT_MS, "+NWICCT", "AT+NWICCT %u", (unsigned) type);
+    return da16k_at_send_formatted_and_check_success(DA16K_UART_TIMEOUT_MS, NULL, "AT+NWICCT %u", (unsigned) type);
 }
 
 da16k_err_t da16k_set_iotc_cpid(const char *cpid) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cpid);
-    return da16k_at_send_formatted_and_check_success_code(DA16K_UART_TIMEOUT_MS, "+NWICCPID", "AT+NWICCPID %s", cpid);
+    return da16k_at_send_formatted_and_check_success(DA16K_UART_TIMEOUT_MS, NULL, "AT+NWICCPID %s", cpid);
 }
 
 da16k_err_t da16k_set_iotc_duid(const char *duid) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, duid);
-    return da16k_at_send_formatted_and_check_success_code(DA16K_UART_TIMEOUT_MS, "+NWICDUID", "AT+NWICDUID %s", duid);
+    return da16k_at_send_formatted_and_check_success(DA16K_UART_TIMEOUT_MS, NULL, "AT+NWICDUID %s", duid);
 }
 
 da16k_err_t da16k_set_iotc_env(const char *env) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, env);
-    return da16k_at_send_formatted_and_check_success_code(DA16K_UART_TIMEOUT_MS, "+NWICENV", "AT+NWICENV %s", env);
+    return da16k_at_send_formatted_and_check_success(DA16K_UART_TIMEOUT_MS, NULL, "AT+NWICENV %s", env);
 }
 
 da16k_err_t da16k_iotc_start(void) {
@@ -265,17 +265,17 @@ da16k_err_t da16k_iotc_start(void) {
 }
 
 da16k_err_t da16k_iotc_stop(void) {
-    return da16k_at_send_formatted_and_check_success_code(s_network_timeout_ms, "+NWICSTOPEND", "AT+NWICSTOP");
+    return da16k_at_send_formatted_and_check_success(s_network_timeout_ms, "+NWICSTOPEND", "AT+NWICSTOP");
 }
 
 da16k_err_t da16k_iotc_reset(void) {
-    return da16k_at_send_formatted_and_check_success_code(s_network_timeout_ms, "+NWICRESETEND", "AT+NWICRESET");
+    return da16k_at_send_formatted_and_check_success(s_network_timeout_ms, "+NWICRESETEND", "AT+NWICRESET");
 }
 
 da16k_err_t da16k_set_wifi_config(const da16k_wifi_cfg_t *cfg) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg);
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg->ssid);
-    return da16k_at_send_formatted_and_check_success_code(
+    return da16k_at_send_formatted_and_check_success(
         cfg->wifi_connect_timeout_ms ? cfg->wifi_connect_timeout_ms : DA16K_DEFAULT_WIFI_TIMEOUT_MS,    /* Timeout, if present */
         "+WFJAP", "AT+WFJAPA %s,%s,%d", /* AT Command*/
         cfg->ssid,                      /* SSID */

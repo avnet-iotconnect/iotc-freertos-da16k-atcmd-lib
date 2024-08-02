@@ -118,6 +118,7 @@ static da16k_err_t da16k_at_send_formatted_valist(const char *format, va_list ar
 da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const char *expected_response, uint32_t timeout_ms) {
     bool error_received         = false;
     bool ok_received            = false;
+    bool response_received      = false;
 
     static const buf_size = sizeof(da16k_at_response_buffer);
 
@@ -135,7 +136,9 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
 
 
         /* Look for proper response */
-        response_data_start = da16k_at_get_start_of_response_data(da16k_at_response_buffer, buf_size, expected_response);
+        if (expected_response) {
+            response_data_start = da16k_at_get_start_of_response_data(da16k_at_response_buffer, buf_size, expected_response);
+        }
 
         /* If we can't find the expected response, but an ERROR:<x> is possible, flag and look for the error response */
         if (error_possible && (response_data_start == NULL)) {
@@ -150,16 +153,22 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
             ok_received = true;
         }
 
+        /* If we have no expected response, an OK is enough, so we pretend a response was received. */
+        if (ok_received && expected_response == NULL) {
+            response_received = true;
+            break;
+        }
+
         /* We received a valid response relevant to us, break */
         if (response_data_start) {
+            /* Move all response data to the start of the buffer; memmove means we don't need an intermediate buffer */
+            memmove(da16k_at_response_buffer, response_data_start, (size_t) (upper_bound - response_data_start));
+            response_received = true;
             break;
         }
     }
 
-    if (response_data_start) {
-        /* Move all response data to the start of the buffer; memmove means we don't need an intermediate buffer */
-        memmove(da16k_at_response_buffer, response_data_start, (size_t) (upper_bound - response_data_start));
-        
+    if (response_received) {
         if (error_received) {
             ret = DA16K_AT_ERROR_CODE;  /* So caller can handle this case properly */
         } else if (ok_received) {
@@ -169,7 +178,7 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
         }
     }
     
-    /* In case of no response data, return last error code */
+    /* In case of no response when expected, return last error code */
     return ret;
 }
 
@@ -187,11 +196,10 @@ da16k_err_t da16k_at_send_formatted_msg(const char *format, ...) {
     return ret;
  }
 
-da16k_err_t da16k_at_send_formatted_and_check_success_code(uint32_t timeout_ms, const char *expected_response, const char *format, ...) {
+da16k_err_t da16k_at_send_formatted_and_check_success(uint32_t timeout_ms, const char *expected_response, const char *format, ...) {
     da16k_err_t ret = DA16K_SUCCESS;
     va_list fmt_args;
 
-    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, expected_response);
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, format);
 
     va_start(fmt_args, format);
@@ -205,9 +213,13 @@ da16k_err_t da16k_at_send_formatted_and_check_success_code(uint32_t timeout_ms, 
 
     ret = da16k_at_receive_and_validate_response(false, expected_response, timeout_ms);
 
-    if (ret == DA16K_SUCCESS && da16k_at_get_response_code() != 1) {
-        DA16K_PRINT("%s: AT command not successful. Return code: %d\r\n", __func__, da16k_at_get_response_code());
-        ret = DA16K_AT_FAIL;
+    /* Only check the return code if we have an expected response. */
+
+    if (expected_response) {
+        if (ret == DA16K_SUCCESS && da16k_at_get_response_code() != 1) {
+            DA16K_ERROR("AT command not successful. Return code: %d\r\n", da16k_at_get_response_code());
+            ret = DA16K_AT_FAIL;
+        }
     }
 
     return ret;
