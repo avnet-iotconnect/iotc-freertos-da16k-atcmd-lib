@@ -311,6 +311,7 @@ da16k_err_t da16k_setup_iotc_and_connect(const da16k_iotc_cfg_t *cfg) {
 
     if (DA16K_SUCCESS != (ret = da16k_iotc_stop()))                             { return ret; }
 
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_connection_type(cfg->mode)))     { return ret; }
     if (DA16K_SUCCESS != (ret = da16k_set_iotc_auth_type(DA16K_IOTC_AT_X509)))  { return ret; }
     if (DA16K_SUCCESS != (ret = da16k_set_iotc_cpid(cfg->cpid)))                { return ret; }
     if (DA16K_SUCCESS != (ret = da16k_set_iotc_duid(cfg->duid)))                { return ret; }
