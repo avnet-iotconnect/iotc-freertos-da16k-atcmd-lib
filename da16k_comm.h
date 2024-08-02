@@ -49,12 +49,12 @@
 #endif
 
 typedef enum {
-    DA16K_IOTC_AZURE    = 0,
     DA16K_IOTC_AWS      = 1,
+    DA16K_IOTC_AZURE    = 2,
 } da16k_iotc_mode_t;
 
 typedef enum {
-    DA16K_IOTC_AT_X509    = 0
+    DA16K_IOTC_AT_X509    = 1
     /* Token not supported. */
 } da16k_iotc_auth_type_t;
 
