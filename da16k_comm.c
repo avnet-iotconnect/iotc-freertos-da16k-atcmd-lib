@@ -43,7 +43,7 @@ da16k_err_t da16k_get_cmd(da16k_cmd_t *cmd) {
     ret = da16k_at_send_formatted_msg(at_message);
 
     if (ret != DA16K_SUCCESS) {
-        DA16K_PRINT("%s: Error sending message: %d\r\n", __func__, (int) ret);
+        DA16K_ERROR("Error sending message: %d\r\n", (int) ret);
         return ret;
     }
     
@@ -57,10 +57,10 @@ da16k_err_t da16k_get_cmd(da16k_cmd_t *cmd) {
         /* We have received an error response, which usually means there are no commands ("ERROR:7"). */
 
         if (da16k_at_get_response_code() == -7) {
-            DA16K_PRINT("No commands available.\r\n");
+            DA16K_DEBUG("No commands available.\r\n");
             return DA16K_NO_CMDS;
         } else {
-            DA16K_PRINT("%s: Bad response.\r\n", __func__);
+            DA16K_ERROR("Bad response, error code %d\r\n", da16k_at_get_response_code());
             return DA16K_AT_FAIL;
         }
     }
@@ -114,7 +114,7 @@ da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
     /* WiFi init (if requested) */
     if (cfg->wifi_config) {
         if (DA16K_SUCCESS != (ret = da16k_set_wifi_config(cfg->wifi_config))) {
-            DA16K_PRINT("WiFi connection failed (%d)\r\n", (int) ret);
+            DA16K_ERROR("WiFi connection failed (%d)\r\n", (int) ret);
             return ret;
         }
     }
@@ -122,7 +122,7 @@ da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
     /* IoTC init (if requested) */
     if (cfg->iotc_config) {
         if (DA16K_SUCCESS != (ret = da16k_setup_iotc_and_connect(cfg->iotc_config))) {
-            DA16K_PRINT("IoTC connection failed (%d)\r\n", (int) ret);
+            DA16K_ERROR("IoTC connection failed (%d)\r\n", (int) ret);
             return ret;
         }
         if (cfg->iotc_config->iotc_connect_timeout_ms) {
@@ -153,7 +153,7 @@ da16k_msg_t *da16k_create_msg_str(const char *key, const char *value) {
     msg->value   = da16k_strdup(value);
 
     if (!msg->key || !msg->value) {
-        DA16K_PRINT("DA16K: Memory allocation for key/value failed!");
+        DA16K_ERROR("DA16K: Memory allocation for key/value failed!");
         da16k_destroy_msg(msg);
         return NULL;
     }
@@ -165,7 +165,7 @@ da16k_msg_t *da16k_create_msg_float(const char *key, double value) {
 /*     platform might not support float printing :( Else we would do:
  *     snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), "%f", value);*/
     if (!da16k_double_to_string(da16k_value_buffer, sizeof(da16k_value_buffer), value)) {
-        DA16K_PRINT("%s: Double to string conversion failed!\r\n", __func__);
+        DA16K_ERROR("%s: Double to string conversion failed!\r\n", __func__);
         return NULL;
     }
     return da16k_create_msg_str(key, da16k_value_buffer);

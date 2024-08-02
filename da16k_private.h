@@ -12,8 +12,33 @@
 
 #include "da16k_comm.h"
 
+/* Debug print macros */
+#define RED_COLOR               "\33[1;31m"
+#define GREEN_COLOR             "\33[1;32m"
+#define YELLOW_COLOR            "\33[1;33m"
+#define CLEAR_COLOR             "\33[0m"
+
+#define DA16K_CONFIG_PRINT_DEBUG
+#define DA16K_CONFIG_PRINT_WARN
+
+#define DA16K_DEBUG(...) do {} while (0)
+#define DA16K_WARN( ...) do {} while (0)
+
+#if defined(DA16K_CONFIG_PRINT_DEBUG)
+#undef  DA16K_DEBUG
+#define DA16K_DEBUG(fmt, ...) do { DA16K_PRINT(GREEN_COLOR  "[%s:%d] " fmt CLEAR_COLOR, __func__, __LINE__, ##__VA_ARGS__); } while (0)
+#endif
+
+#if defined(DA16K_CONFIG_PRINT_WARN)
+#undef  DA16K_WARN
+#define DA16K_WARN( fmt, ...) do { DA16K_PRINT(YELLOW_COLOR "[%s:%d] " fmt CLEAR_COLOR, __func__, __LINE__, ##__VA_ARGS__); } while (0)
+#endif
+
+/* Errors should always be printed. */
+#define DA16K_ERROR(fmt, ...) do { DA16K_PRINT(RED_COLOR    "[%s:%d] " fmt CLEAR_COLOR, __func__, __LINE__, ##__VA_ARGS__); } while (0)
+
 /* Helper macro to cleanly return a meaningful error on NULL whilst informing user properly */
-#define DA16K_RETURN_ON_NULL(return_value, ptr) if (ptr == NULL) { DA16K_PRINT("%s: ERROR - " #ptr " is NULL!\r\n", __func__); return return_value; }
+#define DA16K_RETURN_ON_NULL(return_value, ptr) if (ptr == NULL) { DA16K_ERROR("ERROR - " #ptr " is NULL!\r\n"); return return_value; }
 
 /* System & Utilities (da16k_sys.c) */
 

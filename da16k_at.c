@@ -110,7 +110,7 @@ static da16k_err_t da16k_at_send_formatted_valist(const char *format, va_list ar
     /* Add \r\n to terminate the message */
     at_msg_length += sprintf(&da16k_at_send_buffer[at_msg_length], "\r\n");
 
-    DA16K_PRINT("%s -> %s", __func__, da16k_at_send_buffer);
+    DA16K_DEBUG("TX buffer: '%s'", da16k_at_send_buffer);
 
     return da16k_uart_send(da16k_at_send_buffer, (size_t) at_msg_length) ? DA16K_SUCCESS : DA16K_UART_ERROR;
 }
@@ -131,9 +131,10 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
         ret = da16k_at_get_response_line(da16k_at_response_buffer, buf_size, timeout_ms);
 
         if (ret == DA16K_AT_RESPONSE_TOO_LONG) {
-            DA16K_PRINT("%s: WARNING! RX buffer overflow!\r\nRX Buffer contents:\r\n%s\r\n", __func__, da16k_at_response_buffer);
+            DA16K_WARN("WARNING! RX buffer overflow!\r\nRX Buffer contents:\r\n%s\r\n", da16k_at_response_buffer);
         }
 
+        DA16K_DEBUG("Respone line received: %s\r\n", da16k_at_response_buffer);
 
         /* Look for proper response */
         if (expected_response) {
@@ -207,7 +208,7 @@ da16k_err_t da16k_at_send_formatted_and_check_success(uint32_t timeout_ms, const
     va_end(fmt_args);
 
     if (ret != DA16K_SUCCESS) {
-        DA16K_PRINT("%s: Error sending message: %d\r\n", __func__, (int) ret);
+        DA16K_ERROR("Error sending message: %d\r\n", (int) ret);
         return ret;
     }
 
