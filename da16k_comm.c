@@ -301,6 +301,21 @@ da16k_err_t da16k_set_wifi_config(const da16k_wifi_cfg_t *cfg) {
         cfg->hidden ? 1 : 0);           /* Hidden network flag */
 }
 
+da16k_err_t da16k_set_device_cert(const char *cert, const char *key) {
+    da16k_err_t ret = DA16K_SUCCESS;
+
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cert);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, key);
+
+    /* AT+TRSSLCERTSTORE=<Certificate Type>,<Sequence>,<Format>,<Name>[,<Data length>],<Data> */
+    /* MQTT Client Certificate */
+    if (DA16K_SUCCESS != (ret = da16k_at_send_certificate(DA16K_CERT_MQTT_DEV_CERT, cert))) { return ret; }
+    /* MQTT Client Private Key */
+    if (DA16K_SUCCESS != (ret = da16k_at_send_certificate(DA16K_CERT_MQTT_DEV_CERT, key))) { return ret; }
+
+    return ret;
+}
+
 da16k_err_t da16k_setup_iotc_and_connect(const da16k_iotc_cfg_t *cfg) {
     da16k_err_t ret = DA16K_SUCCESS;
 
@@ -309,16 +324,19 @@ da16k_err_t da16k_setup_iotc_and_connect(const da16k_iotc_cfg_t *cfg) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg->duid);
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg->env);
 
-    if (DA16K_SUCCESS != (ret = da16k_iotc_stop()))                             { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_iotc_stop()))                                             { return ret; }
 
-    if (DA16K_SUCCESS != (ret = da16k_set_iotc_connection_type(cfg->mode)))     { return ret; }
-    if (DA16K_SUCCESS != (ret = da16k_set_iotc_auth_type(DA16K_IOTC_AT_X509)))  { return ret; }
-    if (DA16K_SUCCESS != (ret = da16k_set_iotc_cpid(cfg->cpid)))                { return ret; }
-    if (DA16K_SUCCESS != (ret = da16k_set_iotc_duid(cfg->duid)))                { return ret; }
-    if (DA16K_SUCCESS != (ret = da16k_set_iotc_env(cfg->env)))                  { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_connection_type(cfg->mode)))                     { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_auth_type(DA16K_IOTC_AT_X509)))                  { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_cpid(cfg->cpid)))                                { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_duid(cfg->duid)))                                { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_set_iotc_env(cfg->env)))                                  { return ret; }
 
-    if (DA16K_SUCCESS != (ret = da16k_iotc_reset()))                            { return ret; }
-    if (DA16K_SUCCESS != (ret = da16k_iotc_start()))                            { return ret; }
+    if (cfg->device_cert)
+        if (DA16K_SUCCESS != (ret = da16k_set_device_cert(cfg->device_cert, cfg->device_key)))  { return ret; }
+
+    if (DA16K_SUCCESS != (ret = da16k_iotc_reset()))                                            { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_iotc_start()))                                            { return ret; }
 
     return ret;
 }

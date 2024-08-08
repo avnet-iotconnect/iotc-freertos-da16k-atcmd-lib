@@ -12,6 +12,19 @@
 
 #include "da16k_comm.h"
 
+typedef enum {
+    DA16K_CERT_MQTT_ROOT_CA     = 0,
+    DA16K_CERT_MQTT_DEV_CERT    = 1,
+    DA16K_CERT_MQTT_DEV_KEY     = 2,
+    DA16K_CERT_HTTP_ROOT_CA     = 3,
+    DA16K_CERT_HTTP_DEV_CERT    = 4,
+    DA16K_CERT_HTTP_DEV_KEY     = 5,
+} da16k_cert_type_t;
+
+/* AT helper macros */
+#define AT_ESC                  "\x1B"
+#define AT_ETX                  "\x03"
+
 /* Debug print macros */
 #define RED_COLOR               "\33[1;31m"
 #define GREEN_COLOR             "\33[1;32m"
@@ -88,6 +101,8 @@ char       *da16k_at_get_response_str                       (void);
     WARNING: Only call this after a previous call to send a message yielded success. */
 int         da16k_at_get_response_code                      (void);
 
+/*  Sends a PEM format certificate to the DA16K. See da16k_cert_type_t enum for supported types. */
+da16k_err_t da16k_at_send_certificate                       (da16k_cert_type_t type, const char *cert);
 
 
 #endif /* DA16K_COMM_DA16K_PRIVATE_H_ */

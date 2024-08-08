@@ -63,11 +63,10 @@ typedef struct {
     const char         *cpid;           /* IoTConnect CPID (Key Vault) */
     const char         *duid;           /* IoTConnect DUID (Key Vault) */
     const char         *env;            /* IoTConnect Environment setting (Key Vault) */
-    uint32_t            iotc_connect_timeout_ms; /* Timeout for IoTC connection (0 = Default) */
+    uint32_t            iotc_connect_timeout_ms;    /* Timeout for IoTC connection (0 = Default) */
 
-    /* TODO: These don't have any effect yet.*/
     const char         *device_cert;    /* Device cert (NULL = rely on existing AT gateway configuration) */
-    const char         *device_key;     /* Device key  (NULL = rely on existing AT gateway configuration) */
+    const char         *device_key;     /* Device key (must not be NULL if device_cert is used, ignored if device_cert is NULL) */
 } da16k_iotc_cfg_t;
 
 typedef struct {
@@ -143,6 +142,7 @@ da16k_err_t da16k_iotc_start                (void);
 da16k_err_t da16k_iotc_stop                 (void);
 da16k_err_t da16k_iotc_reset                (void);
 da16k_err_t da16k_set_wifi_config           (const da16k_wifi_cfg_t *cfg);
+da16k_err_t da16k_set_device_cert           (const char *cert, const char *key);
 da16k_err_t da16k_setup_iotc_and_connect    (const da16k_iotc_cfg_t *cfg);
 
 /*  Receives the next command from the AT command gateway.

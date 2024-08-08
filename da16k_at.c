@@ -1,4 +1,5 @@
 #include "da16k_private.h"
+#include "da16k_uart.h"
 
 #include <stdarg.h>
 
@@ -120,7 +121,7 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
     bool ok_received            = false;
     bool response_received      = false;
 
-    static const buf_size = sizeof(da16k_at_response_buffer);
+    static const buf_size       = sizeof(da16k_at_response_buffer);
 
     char *upper_bound           = da16k_at_response_buffer + buf_size;
     char *response_data_start   = NULL;
@@ -233,4 +234,25 @@ char *da16k_at_get_response_str(void) {
 int da16k_at_get_response_code(void) {
     /* TODO: Make this less error-prone */
     return atoi(da16k_at_response_buffer);
+}
+
+da16k_err_t da16k_at_send_certificate(da16k_cert_type_t type, const char *cert) {
+    char        command_sequence[]  = AT_ESC "C0";
+    da16k_err_t ret                 = DA16K_SUCCESS;
+    bool        tx_success          = true;
+
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cert);
+
+    /* A bit hackish, but the number after the 'C' denotes the certificate type, so we adjust it. */
+    command_sequence[2] += (char) type;
+
+    tx_success &= da16k_uart_send(command_sequence, strlen(command_sequence));  /* Enter Certificate Command Mode */
+    tx_success &= da16k_uart_send(cert,             strlen(cert));              /* Actual certificate */
+    tx_success &= da16k_uart_send(AT_ETX,           1);                         /* End of text marker */
+
+    if (!tx_success) {
+        return DA16K_UART_ERROR;
+    }
+
+    return da16k_at_receive_and_validate_response(false, NULL, DA16K_UART_TIMEOUT_MS);
 }
