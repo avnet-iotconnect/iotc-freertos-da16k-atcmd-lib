@@ -307,7 +307,6 @@ da16k_err_t da16k_set_device_cert(const char *cert, const char *key) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cert);
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, key);
 
-    /* AT+TRSSLCERTSTORE=<Certificate Type>,<Sequence>,<Format>,<Name>[,<Data length>],<Data> */
     /* MQTT Client Certificate */
     if (DA16K_SUCCESS != (ret = da16k_at_send_certificate(DA16K_CERT_MQTT_DEV_CERT, cert))) { return ret; }
     /* MQTT Client Private Key */
