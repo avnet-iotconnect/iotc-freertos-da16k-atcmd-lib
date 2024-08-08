@@ -310,7 +310,7 @@ da16k_err_t da16k_set_device_cert(const char *cert, const char *key) {
     /* MQTT Client Certificate */
     if (DA16K_SUCCESS != (ret = da16k_at_send_certificate(DA16K_CERT_MQTT_DEV_CERT, cert))) { return ret; }
     /* MQTT Client Private Key */
-    if (DA16K_SUCCESS != (ret = da16k_at_send_certificate(DA16K_CERT_MQTT_DEV_CERT, key))) { return ret; }
+    if (DA16K_SUCCESS != (ret = da16k_at_send_certificate(DA16K_CERT_MQTT_DEV_KEY, key)))   { return ret; }
 
     return ret;
 }

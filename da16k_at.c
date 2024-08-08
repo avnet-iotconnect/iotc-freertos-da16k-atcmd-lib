@@ -228,15 +228,6 @@ da16k_err_t da16k_at_send_formatted_and_check_success(uint32_t timeout_ms, const
     return ret;
 }
 
-char *da16k_at_get_response_str(void) {
-    return da16k_strdup(da16k_at_response_buffer);
-}
-
-int da16k_at_get_response_code(void) {
-    /* TODO: Make this less error-prone */
-    return atoi(da16k_at_response_buffer);
-}
-
 da16k_err_t da16k_at_send_certificate(da16k_cert_type_t type, const char *cert) {
     char        command_sequence[]  = AT_ESC "C0";
     da16k_err_t ret                 = DA16K_SUCCESS;
@@ -256,4 +247,13 @@ da16k_err_t da16k_at_send_certificate(da16k_cert_type_t type, const char *cert) 
     }
 
     return da16k_at_receive_and_validate_response(false, NULL, DA16K_UART_TIMEOUT_MS);
+}
+
+char *da16k_at_get_response_str(void) {
+    return da16k_strdup(da16k_at_response_buffer);
+}
+
+int da16k_at_get_response_code(void) {
+    /* TODO: Make this less error-prone */
+    return atoi(da16k_at_response_buffer);
 }

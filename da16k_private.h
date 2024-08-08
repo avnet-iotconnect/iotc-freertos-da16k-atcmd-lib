@@ -94,15 +94,14 @@ da16k_err_t da16k_at_send_formatted_msg                     (const char *format,
 
     returns DA16K_SUCCESS if the command was sent out successfully, the response was proper and had a return code of 1. */
 da16k_err_t da16k_at_send_formatted_and_check_success       (uint32_t timeout_ms, const char *expected_response, const char *format, ...);
+/*  Sends a PEM format certificate to the DA16K. See da16k_cert_type_t enum for supported types. */
+da16k_err_t da16k_at_send_certificate                       (da16k_cert_type_t type, const char *cert);
 /*  Copy out the full, final, parsed response string into a new buffer. Will allocate. 
     WARNING: Only call this after a previous call to send a message yielded success. */
 char       *da16k_at_get_response_str                       (void);
 /*  Fetches an integer return code from the full, final, parsed response.
     WARNING: Only call this after a previous call to send a message yielded success. */
 int         da16k_at_get_response_code                      (void);
-
-/*  Sends a PEM format certificate to the DA16K. See da16k_cert_type_t enum for supported types. */
-da16k_err_t da16k_at_send_certificate                       (da16k_cert_type_t type, const char *cert);
 
 
 #endif /* DA16K_COMM_DA16K_PRIVATE_H_ */
