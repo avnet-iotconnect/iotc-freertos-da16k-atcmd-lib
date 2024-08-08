@@ -9,6 +9,8 @@
 
 #include "da16k_private.h"
 
+#include <stdio.h>
+
 /* Wrappers for external functions that may be unreliable / redefined */
 
 void *da16k_malloc(size_t size) {

@@ -2,6 +2,7 @@
 #include "da16k_uart.h"
 
 #include <stdarg.h>
+#include <stdio.h>
 
 static char da16k_at_send_buffer[256];
 static char da16k_at_response_buffer[512];
@@ -117,16 +118,16 @@ static da16k_err_t da16k_at_send_formatted_valist(const char *format, va_list ar
 }
 
 da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const char *expected_response, uint32_t timeout_ms) {
-    bool error_received         = false;
-    bool ok_received            = false;
-    bool response_received      = false;
+    bool error_received             = false;
+    bool ok_received                = false;
+    bool response_received          = false;
 
-    static const buf_size       = sizeof(da16k_at_response_buffer);
+    static const size_t buf_size    = sizeof(da16k_at_response_buffer);
 
-    char *upper_bound           = da16k_at_response_buffer + buf_size;
-    char *response_data_start   = NULL;
+    char *upper_bound               = da16k_at_response_buffer + buf_size;
+    char *response_data_start       = NULL;
 
-    da16k_err_t ret             = DA16K_SUCCESS;
+    da16k_err_t ret                 = DA16K_SUCCESS;
     
     while (ret == DA16K_SUCCESS) {
         ret = da16k_at_get_response_line(da16k_at_response_buffer, buf_size, timeout_ms);
