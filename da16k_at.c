@@ -229,8 +229,7 @@ da16k_err_t da16k_at_send_formatted_and_check_success(uint32_t timeout_ms, const
 }
 
 da16k_err_t da16k_at_send_certificate(da16k_cert_type_t type, const char *cert) {
-    char        command_sequence[]  = AT_ESC "C0";
-    da16k_err_t ret                 = DA16K_SUCCESS;
+    char        command_sequence[]  = AT_ESC "C0,";
     bool        tx_success          = true;
 
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cert);
