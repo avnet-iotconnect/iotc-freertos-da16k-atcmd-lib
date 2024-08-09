@@ -43,9 +43,15 @@ bool da16k_double_to_string(char *buf, size_t buf_size, volatile double value) {
 
     DA16K_RETURN_ON_NULL(false, buf);
 
-    /* need to at least be able to fit 3 digits, e.g. 1.0 + null terminator*/
-    if (chars_written <= 0 || buf_size < 4) {
+    /* need to at least be able to fit 4 digits, e.g. -1.0 + null terminator*/
+    if (chars_written <= 0 || buf_size < 5) {
         return false;
+    }
+
+    /* Get absolute value because we don't need the sign anymore; simplifies adjustments below */
+    if (value < 0.0) {
+        value *= -1.0;
+        integer *= -1;
     }
 
     /* Write decimal part, up to 8 chars */
