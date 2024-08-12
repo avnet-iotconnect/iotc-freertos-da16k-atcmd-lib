@@ -293,6 +293,11 @@ da16k_err_t da16k_iotc_reset(void) {
 da16k_err_t da16k_set_wifi_config(const da16k_wifi_cfg_t *cfg) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg);
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg->ssid);
+
+    /* Existing IoTC session must be stopped first to avoid reconnection attempts while wifi is connecting.
+       Return codes can be ignored for this as when there is no connection in place, only "OK" will arrive. */
+    da16k_iotc_stop();
+
     return da16k_at_send_formatted_and_check_success(
         cfg->wifi_connect_timeout_ms ? cfg->wifi_connect_timeout_ms : DA16K_DEFAULT_WIFI_TIMEOUT_MS,    /* Timeout, if present */
         "+WFJAP", "AT+WFJAPA %s,%s,%d", /* AT Command*/
