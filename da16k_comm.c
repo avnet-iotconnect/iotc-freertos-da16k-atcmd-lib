@@ -242,8 +242,7 @@ da16k_err_t da16k_send_msg(da16k_msg_t *msg) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg->key);
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg->value);
 
-    /* Expected response: OK | +NWMQMSGSND:1 */
-    return da16k_at_send_formatted_and_check_success(DA16K_UART_TIMEOUT_MS, NULL, "AT+NWICMSG %s,%s", msg->key, msg->value);
+    return da16k_at_send_formatted_and_check_success(s_network_timeout_ms, NULL, "AT+NWICMSG %s,%s", msg->key, msg->value);
 }
 
 da16k_err_t da16k_set_iotc_connection_type(da16k_iotc_mode_t type) {
