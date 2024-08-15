@@ -156,22 +156,26 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
             ok_received = true;
         }
 
-        /* If we have no expected response, an OK is enough, so we pretend a response was received. */
-        if (ok_received && expected_response == NULL) {
-            response_received = true;
-            break;
-        }
-
-        /* We received a valid response relevant to us, break */
+        /* We received a valid response / error response relevant to us */
         if (response_data_start) {
             /* Move all response data to the start of the buffer; memmove means we don't need an intermediate buffer */
             memmove(da16k_at_response_buffer, response_data_start, (size_t) (upper_bound - response_data_start));
             response_received = true;
+        }
+
+        /* If we have no expected response, an OK is enough, so we pretend a response was received. */
+        if (ok_received && expected_response == NULL) {
+            response_received = true;
+        }
+
+        /* If OK *or* ERROR and the response data (if any) is received, we break. */
+        if (response_received && (error_received || ok_received)) {
             break;
         }
     }
 
     if (response_received) {
+        DA16K_PRINT("da16k_at_response_buffer %s\r\n", da16k_at_response_buffer);
         if (error_received) {
             ret = DA16K_AT_ERROR_CODE;  /* So caller can handle this case properly */
         } else if (ok_received) {
