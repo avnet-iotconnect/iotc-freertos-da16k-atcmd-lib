@@ -117,6 +117,23 @@ static da16k_err_t da16k_at_send_formatted_valist(const char *format, va_list ar
     return da16k_uart_send(da16k_at_send_buffer, (size_t) at_msg_length) ? DA16K_SUCCESS : DA16K_UART_ERROR;
 }
 
+/* checks if any non-space or valid ascii characters are in a response string */
+static bool da16k_at_is_line_only_whitespace(const char *str) {
+    DA16K_RETURN_ON_NULL(true, str);
+
+    if (strlen(str) == 0) {
+        return true;
+    }
+
+    while (*str != 0x00) {
+        if (*str > ' ') { /* everything above the space character makes the string valid. */
+            return false;
+        }
+    }
+
+    return true;
+}
+
 da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const char *expected_response, uint32_t timeout_ms) {
     bool error_received             = false;
     bool ok_received                = false;
@@ -134,6 +151,11 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
 
         if (ret == DA16K_AT_RESPONSE_TOO_LONG) {
             DA16K_WARN("WARNING! RX buffer overflow!\r\nRX Buffer contents:\r\n%s\r\n", da16k_at_response_buffer);
+        }
+
+        /* Ignore lines that don't have anything parseable (just to clean up the output a little) */
+        if (da16k_at_is_line_only_whitespace(da16k_at_response_buffer)) {
+            continue;
         }
 
         DA16K_DEBUG("Respone line received: %s\r\n", da16k_at_response_buffer);
