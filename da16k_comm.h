@@ -59,7 +59,7 @@ typedef enum {
 } da16k_iotc_auth_type_t;
 
 typedef struct {
-    da16k_iotc_mode_t   mode;
+    da16k_iotc_mode_t   mode;           /* IoTConnect Connection Type (AWS/Azure) */
     const char         *cpid;           /* IoTConnect CPID (Key Vault) */
     const char         *duid;           /* IoTConnect DUID (Key Vault) */
     const char         *env;            /* IoTConnect Environment setting (Key Vault) */
