@@ -20,13 +20,6 @@
 
 #include "da16k_uart.h"
 
-/* Default wifi connection timeout, 15 seconds */
-#define DA16K_DEFAULT_WIFI_TIMEOUT_MS           15000
-/* Default IoTC MQTT interaction timeout, 2 seconds */
-#define DA16K_DEFAULT_IOTC_TIMEOUT_MS           2000
-/* Default IoTC Connect timeout, 15 seconds */
-#define DA16K_DEFAULT_IOTC_CONNECT_TIMEOUT_MS   15000
-
 static char da16k_value_buffer[64] = {0};
 
 static uint32_t s_network_timeout_ms        = DA16K_DEFAULT_IOTC_TIMEOUT_MS;

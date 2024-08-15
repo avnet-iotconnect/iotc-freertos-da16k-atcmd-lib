@@ -63,7 +63,9 @@ typedef struct {
     const char         *cpid;           /* IoTConnect CPID (Key Vault) */
     const char         *duid;           /* IoTConnect DUID (Key Vault) */
     const char         *env;            /* IoTConnect Environment setting (Key Vault) */
-    uint32_t            iotc_connect_timeout_ms;    /* Timeout for IoTC connection (0 = Default) */
+
+    uint32_t            iotc_connect_timeout_ms;        /* Timeout for IoTC connection (0 = Default) */
+#define DA16K_DEFAULT_IOTC_CONNECT_TIMEOUT_MS   15000   /* Default: 15 seconds */
 
     /*  WARNING: CLIENT CERTIFICATE TRANSMISSION IS INSECURE AND THE FUNCTIONALITY
         IS ONLY PROVIDED FOR TESTING PURPOSES. */
@@ -75,13 +77,17 @@ typedef struct {
     const char         *ssid;           /* WiFi network name */
     const char         *key;            /* WiFi network WPA/WPA2 passphrase - NULL for open network. */
     bool                hidden;         /* WiFi hidden network flag */
-    uint32_t            wifi_connect_timeout_ms;    /* Timeout for WiFi connection in ms (0 = Default) */
+
+    uint32_t            wifi_connect_timeout_ms;        /* Timeout for WiFi connection in ms (0 = Default) */
+#define DA16K_DEFAULT_WIFI_TIMEOUT_MS           15000   /* Default: 15 seconds */
 } da16k_wifi_cfg_t;
 
 typedef struct {
     da16k_iotc_cfg_t   *iotc_config;    /* IoTConnect device config (NULL = rely on existing AT gateway configuration) */
     da16k_wifi_cfg_t   *wifi_config;    /* (NULL = rely on existing AT gateway configuration) */
-    uint32_t            network_timeout_ms;         /* Timeout for network operations e.g. confirmation on sending telemetry (0=Default) */
+
+    uint32_t            network_timeout_ms;             /* Timeout for network operations e.g. confirmation on sending telemetry (0=Default) */
+#define DA16K_DEFAULT_IOTC_TIMEOUT_MS           2000    /* Default: 2 seconds */
 } da16k_cfg_t;
 
 typedef enum e_da16k_err {
