@@ -65,6 +65,8 @@ typedef struct {
     const char         *env;            /* IoTConnect Environment setting (Key Vault) */
     uint32_t            iotc_connect_timeout_ms;    /* Timeout for IoTC connection (0 = Default) */
 
+    /*  WARNING: CLIENT CERTIFICATE TRANSMISSION IS INSECURE AND THE FUNCTIONALITY
+        IS ONLY PROVIDED FOR TESTING PURPOSES. */
     const char         *device_cert;    /* Device cert (NULL = rely on existing AT gateway configuration) */
     const char         *device_key;     /* Device key (must not be NULL if device_cert is used, ignored if device_cert is NULL) */
 } da16k_iotc_cfg_t;
