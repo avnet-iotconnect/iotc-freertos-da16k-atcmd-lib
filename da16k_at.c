@@ -4,8 +4,12 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-static char da16k_at_send_buffer[256];
-static char da16k_at_response_buffer[512];
+#define DA16K_AT_TX_BUFFER_SIZE 256
+#define DA16K_AT_RX_BUFFER_SIZE 512
+
+static char da16k_at_send_buffer    [DA16K_AT_TX_BUFFER_SIZE];
+static char da16k_at_receive_buffer [DA16K_AT_RX_BUFFER_SIZE];
+static char da16k_at_saved_response [DA16K_AT_RX_BUFFER_SIZE];
 
 /* Receive a line of AT response from UART with a timeout.
 
@@ -139,49 +143,51 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
     bool ok_received                = false;
     bool response_received          = false;
 
-    static const size_t buf_size    = sizeof(da16k_at_response_buffer);
+    static const size_t buf_size    = sizeof(da16k_at_receive_buffer);
 
-    char *upper_bound               = da16k_at_response_buffer + buf_size;
+    char *upper_bound               = da16k_at_receive_buffer + buf_size;
     char *response_data_start       = NULL;
 
     da16k_err_t ret                 = DA16K_SUCCESS;
     
+    memset(da16k_at_saved_response, 0, buf_size);
+
     while (ret == DA16K_SUCCESS) {
-        ret = da16k_at_get_response_line(da16k_at_response_buffer, buf_size, timeout_ms);
+        ret = da16k_at_get_response_line(da16k_at_receive_buffer, buf_size, timeout_ms);
 
         if (ret == DA16K_AT_RESPONSE_TOO_LONG) {
-            DA16K_WARN("WARNING! RX buffer overflow!\r\nRX Buffer contents:\r\n%s\r\n", da16k_at_response_buffer);
+            DA16K_WARN("WARNING! RX buffer overflow!\r\nRX Buffer contents:\r\n%s\r\n", da16k_at_receive_buffer);
         }
 
         /* Ignore lines that don't have anything parseable (just to clean up the output a little) */
-        if (da16k_at_is_line_only_whitespace(da16k_at_response_buffer)) {
+        if (da16k_at_is_line_only_whitespace(da16k_at_receive_buffer)) {
             continue;
         }
 
-        DA16K_DEBUG("Respone line received: %s\r\n", da16k_at_response_buffer);
+        DA16K_DEBUG("Respone line received: %s\r\n", da16k_at_receive_buffer);
 
-        /* Look for proper response */
-        if (expected_response) {
-            response_data_start = da16k_at_get_start_of_response_data(da16k_at_response_buffer, buf_size, expected_response);
+        /* Look for proper response, if one is expected */
+        if (!response_received && expected_response != NULL) {
+            response_data_start = da16k_at_get_start_of_response_data(da16k_at_receive_buffer, buf_size, expected_response);
         }
 
-        /* If we can't find the expected response, but an ERROR:<x> is possible, flag and look for the error response */
-        if (error_possible && (response_data_start == NULL)) {
-            response_data_start = da16k_at_get_start_of_response_data(da16k_at_response_buffer, buf_size, "ERROR");
+        /* If we can't find the expected response, but an ERROR:<x> is possible and we haven't rcv'd one yet, flag and look for the error response */
+        if (error_possible && !error_received && response_data_start == NULL) {
+            response_data_start = da16k_at_get_start_of_response_data(da16k_at_receive_buffer, buf_size, "ERROR");
             if (response_data_start != NULL) {
                 error_received = true;
             }
         }
 
         /* Mark whether the OK\r\n part of the response was received. */
-        if (strstr(da16k_at_response_buffer, "OK") != NULL) {
+        if (strstr(da16k_at_receive_buffer, "OK") != NULL) {
             ok_received = true;
         }
 
         /* We received a valid response / error response relevant to us */
-        if (response_data_start) {
-            /* Move all response data to the start of the buffer; memmove means we don't need an intermediate buffer */
-            memmove(da16k_at_response_buffer, response_data_start, (size_t) (upper_bound - response_data_start));
+        if (!response_received && response_data_start != NULL) {
+            /* Move all response data to the final response output buffer */
+            memmove(da16k_at_saved_response, response_data_start, (size_t) (upper_bound - response_data_start));
             response_received = true;
         }
 
@@ -197,7 +203,7 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
     }
 
     if (response_received) {
-        DA16K_PRINT("da16k_at_response_buffer %s\r\n", da16k_at_response_buffer);
+        DA16K_PRINT("da16k_at_saved_response %s\r\n", da16k_at_saved_response);
         if (error_received) {
             ret = DA16K_AT_ERROR_CODE;  /* So caller can handle this case properly */
         } else if (ok_received) {
@@ -275,10 +281,10 @@ da16k_err_t da16k_at_send_certificate(da16k_cert_type_t type, const char *cert) 
 }
 
 char *da16k_at_get_response_str(void) {
-    return da16k_strdup(da16k_at_response_buffer);
+    return da16k_strdup(da16k_at_saved_response);
 }
 
 int da16k_at_get_response_code(void) {
     /* TODO: Make this less error-prone */
-    return atoi(da16k_at_response_buffer);
+    return atoi(da16k_at_saved_response);
 }
