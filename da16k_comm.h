@@ -41,6 +41,7 @@
 
 /* Generic malloc and free if none else are used */
 #if !defined(DA16K_CONFIG_MALLOC_FN)
+#include <malloc.h>
 #define DA16K_CONFIG_MALLOC_FN malloc
 #endif
 
@@ -106,37 +107,34 @@ typedef enum e_da16k_err {
     DA16K_NOT_INITIALIZED       = 12,   /* The initialization has failed or not occured yet */
 } da16k_err_t;
 
-typedef struct {
-    char *key;
-    char *value;
-} da16k_msg_t;
 
 typedef struct {
     char *command;
     char *parameters;
 } da16k_cmd_t;
 
+typedef struct da16k_msg_t da16k_msg_t;
+
 /*  Init/deinit the library */
 da16k_err_t da16k_init                      (const da16k_cfg_t *cfg);
 void        da16k_deinit                    (void);
 
-/*  Create message struct with given key and value. Must be destroyed after use (see below.) */
-da16k_msg_t *da16k_create_msg_str           (const char* key, const char* value);
-da16k_msg_t *da16k_create_msg_float         (const char *key, double value);
-da16k_msg_t *da16k_create_msg_uint          (const char *key, uint64_t value);
-da16k_msg_t *da16k_create_msg_int           (const char *key, int64_t value);
-da16k_msg_t *da16k_create_msg_bool          (const char *key, bool value);
+/* Create message */
+da16k_msg_t *da16k_create_msg               (void);
+/* Add data to message */
+da16k_err_t da16k_msg_add_str               (da16k_msg_t *msg, const char *key, const char *value);
+da16k_err_t da16k_msg_add_bool              (da16k_msg_t *msg, const char *key, bool value);
+da16k_err_t da16k_msg_add_num               (da16k_msg_t *msg, const char *key, double value);
+/*  Send data out via AT Commands (does not destroy the message!) */
+da16k_err_t da16k_send_msg                  (const da16k_msg_t *msg);
+/*  Destroy message & data */
+void        da16k_destroy_msg               (da16k_msg_t *msg);
+
 /*  Create message struct with given key and value, send it out, and destroy it. Can be used directly.
     This is intended for basic, non-threaded applications with ease-of-implementation in mind. */
 da16k_err_t da16k_send_msg_direct_str       (const char *key, const char *value);
-da16k_err_t da16k_send_msg_direct_float     (const char *key, double value);
-da16k_err_t da16k_send_msg_direct_uint      (const char *key, uint64_t value);
-da16k_err_t da16k_send_msg_direct_int       (const char *key, int64_t value);
 da16k_err_t da16k_send_msg_direct_bool      (const char *key, bool value);
-/*  Send the message out via AT Commands (does not destroy the message!) */
-da16k_err_t da16k_send_msg                  (da16k_msg_t *msg);
-/*  Destroy message */
-void        da16k_destroy_msg               (da16k_msg_t *msg);
+da16k_err_t da16k_send_msg_direct_num       (const char *key, double value);
 
 /*  IoTConnect configuration/setup
     These do not have to be called manually unless changed at runtime.

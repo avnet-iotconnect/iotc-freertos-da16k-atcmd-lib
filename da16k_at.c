@@ -3,6 +3,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define DA16K_AT_TX_BUFFER_SIZE 256
 #define DA16K_AT_RX_BUFFER_SIZE 512
@@ -96,8 +97,10 @@ static char *da16k_at_get_start_of_response_data(char *buf, size_t buf_size, con
 }
 
 /*  analogous to vprintf, this is like da16k_at_send_formatted_msg but takes va_list as parameter to reduce
-    code duplication for other funcs that allow formatted messages to be sent */
-static da16k_err_t da16k_at_send_formatted_valist(const char *format, va_list args) {
+    code duplication for other funcs that allow formatted messages to be sent.
+
+    If add_crlf is true, a \r\n will be added at the end.*/
+static da16k_err_t da16k_at_send_formatted_valist(bool add_crlf, const char *format, va_list args) {
     int at_msg_length;
     
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, format);
@@ -113,8 +116,10 @@ static da16k_err_t da16k_at_send_formatted_valist(const char *format, va_list ar
         return DA16K_AT_MESSAGE_TOO_LONG;
     }
 
-    /* Add \r\n to terminate the message */
-    at_msg_length += sprintf(&da16k_at_send_buffer[at_msg_length], "\r\n");
+    if (add_crlf) {
+        /* Add \r\n to terminate the message */
+        at_msg_length += sprintf(&da16k_at_send_buffer[at_msg_length], "\r\n");
+    }
 
     DA16K_DEBUG("TX buffer: '%s'", da16k_at_send_buffer);
 
@@ -217,7 +222,6 @@ da16k_err_t da16k_at_receive_and_validate_response(bool error_possible, const ch
     return ret;
 }
 
-
 da16k_err_t da16k_at_send_formatted_msg(const char *format, ...) {
     va_list args;
     da16k_err_t ret;
@@ -225,11 +229,24 @@ da16k_err_t da16k_at_send_formatted_msg(const char *format, ...) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, format);
 
     va_start(args, format);
-    ret = da16k_at_send_formatted_valist(format, args);
+    ret = da16k_at_send_formatted_valist(true, format, args);
     va_end(args);
 
     return ret;
- }
+}
+
+da16k_err_t da16k_at_send_formatted_raw_no_crlf(const char *format, ...) {
+    va_list args;
+    da16k_err_t ret;
+
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, format);
+
+    va_start(args, format);
+    ret = da16k_at_send_formatted_valist(false, format, args);
+    va_end(args);
+
+    return ret;
+}
 
 da16k_err_t da16k_at_send_formatted_and_check_success(uint32_t timeout_ms, const char *expected_response, const char *format, ...) {
     da16k_err_t ret = DA16K_SUCCESS;
@@ -238,7 +255,7 @@ da16k_err_t da16k_at_send_formatted_and_check_success(uint32_t timeout_ms, const
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, format);
 
     va_start(fmt_args, format);
-    ret = da16k_at_send_formatted_valist(format, fmt_args);
+    ret = da16k_at_send_formatted_valist(true, format, fmt_args);
     va_end(fmt_args);
 
     if (ret != DA16K_SUCCESS) {

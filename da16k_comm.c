@@ -20,6 +20,34 @@
 
 #include "da16k_uart.h"
 
+#pragma GCC diagnostic error "-Wextra"
+
+typedef enum e_da16k_msg_data_type {
+    DA16K_AT_STRING = 0,
+    DA16K_AT_BOOL,
+    DA16K_AT_FLOAT32,
+    DA16K_AT_FLOAT64
+} da16k_msg_data_type_t;
+
+typedef union {
+    char       *d_string;
+    bool        d_bool;
+    float       d_float32;
+    double      d_float64;
+} da16k_value_t;
+
+typedef struct {
+    da16k_msg_data_type_t   type;
+    const char             *key;
+    da16k_value_t           value;
+} da16k_msg_data_t;
+
+struct da16k_msg_t {
+    size_t                  data_count;
+    size_t                  data_capacity;
+    da16k_msg_data_t       *data;
+};
+
 static char da16k_value_buffer[64] = {0};
 
 static uint32_t s_network_timeout_ms        = DA16K_DEFAULT_IOTC_TIMEOUT_MS;
@@ -135,107 +163,212 @@ void da16k_deinit() {
     da16k_uart_close();
 }
 
-da16k_msg_t *da16k_create_msg_str(const char *key, const char *value) {
-    da16k_msg_t *msg = da16k_malloc(sizeof(da16k_msg_t));
+da16k_msg_t *da16k_create_msg(void) {
+    da16k_msg_t *ret = da16k_malloc(sizeof(da16k_msg_t));
 
-    DA16K_RETURN_ON_NULL(NULL, msg);
-    DA16K_RETURN_ON_NULL(NULL, key);
-    DA16K_RETURN_ON_NULL(NULL, value);
+    DA16K_RETURN_ON_NULL(NULL, ret);
 
-    msg->key     = da16k_strdup(key);
-    msg->value   = da16k_strdup(value);
+    memset(ret, 0, sizeof(da16k_msg_t));
 
-    if (!msg->key || !msg->value) {
-        DA16K_ERROR("DA16K: Memory allocation for key/value failed!");
-        da16k_destroy_msg(msg);
-        return NULL;
+    return ret;
+}
+
+/*  Adds a da16k_msg_data_t entryto a da16k_msg_t's data array.
+
+    Will (re-) allocate if capacity is exceeded.
+
+    In an out of memory condition, the data is not added, but the previous data remains valid.
+
+    Do note that no checks are performed on data's content, it is only checked if data is NULL. */
+static da16k_err_t da16k_msg_add_internal(da16k_msg_t *msg, const da16k_msg_data_t *data) {
+    da16k_msg_data_t   *new_data        = NULL;
+    size_t              new_capacity;
+
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg);
+
+    /* If we're out of capacity for data, we need to realloc with bigger capacity */
+    if (msg->data_count == msg->data_capacity) {
+        DA16K_DEBUG("msg->data capacity reached, reallocating...\r\n");
+
+        new_capacity = msg->data_capacity + 10;
+        new_data = da16k_malloc(sizeof(da16k_msg_data_t) * new_capacity);
+
+        if (new_data == NULL) {
+            DA16K_ERROR("Out of memory!\r\n");
+            return DA16K_OUT_OF_MEMORY;
+        }
+
+        if (msg->data) {
+            memcpy(new_data, msg->data, sizeof(da16k_msg_data_t) * msg->data_capacity);
+            da16k_free(msg->data);
+        }
+
+        msg->data_capacity = new_capacity;
+        msg->data = new_data;
     }
 
-    return msg;
+    /* Now apply new data to the next free slot */
+
+    memcpy(&msg->data[msg->data_count], data, sizeof(da16k_msg_data_t));
+    msg->data_count++;
+
+    return DA16K_SUCCESS;
 }
 
-da16k_msg_t *da16k_create_msg_float(const char *key, double value) {
-/*     platform might not support float printing :( Else we would do:
- *     snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), "%f", value);*/
-    if (!da16k_double_to_string(da16k_value_buffer, sizeof(da16k_value_buffer), value)) {
-        DA16K_ERROR("%s: Double to string conversion failed!\r\n", __func__);
-        return NULL;
+
+da16k_err_t da16k_msg_add_str(da16k_msg_t *msg, const char *key, const char *value) {
+    da16k_msg_data_t data = {0};
+
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, key);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, value);
+
+    data.key                = da16k_strdup(key);
+    data.type               = DA16K_AT_STRING;
+    data.value.d_string     = data.key ? da16k_strdup(value) : NULL; /* little hack so we can use the helper macro to exit the function cleanly on OOM */
+
+    DA16K_RETURN_ON_NULL(DA16K_OUT_OF_MEMORY, key);
+    DA16K_RETURN_ON_NULL(DA16K_OUT_OF_MEMORY, data.value.d_string);
+
+    return da16k_msg_add_internal(msg, &data);
+}
+
+da16k_err_t da16k_msg_add_bool(da16k_msg_t *msg, const char *key, bool value) {
+    da16k_msg_data_t data = {0};
+
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, key);
+
+    data.key                = da16k_strdup(key);
+    data.type               = DA16K_AT_BOOL;
+    data.value.d_bool       = value;
+
+    DA16K_RETURN_ON_NULL(DA16K_OUT_OF_MEMORY, key);
+
+    return da16k_msg_add_internal(msg, &data);
+}
+
+da16k_err_t da16k_msg_add_num(da16k_msg_t *msg, const char *key, double value) {
+    da16k_msg_data_t data = {0};
+
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, key);
+
+    data.key                = da16k_strdup(key);
+    data.type               = DA16K_AT_FLOAT64;
+    data.value.d_float64    = value;
+
+    DA16K_RETURN_ON_NULL(DA16K_OUT_OF_MEMORY, key);
+
+    return da16k_msg_add_internal(msg, &data);
+}
+
+/* Sends a single piece of */
+static da16k_err_t da16k_send_msg_data(const da16k_msg_data_t *data) {
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, data);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, data->key);
+
+    switch (data->type) {
+        case DA16K_AT_STRING:
+            DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, data->value.d_string);
+            return      da16k_at_send_formatted_raw_no_crlf("%d,%s,%s,", (int) data->type, data->key, data->value.d_string);
+        case DA16K_AT_BOOL:
+            if (da16k_bool_to_ascii_hex(da16k_value_buffer, data->value.d_bool))
+                return  da16k_at_send_formatted_raw_no_crlf("%d,%s,%s,", (int) data->type, data->key, da16k_value_buffer);
+            break;
+        case DA16K_AT_FLOAT64:
+            if (da16k_double_to_ascii_hex(da16k_value_buffer, data->value.d_float64))
+                return  da16k_at_send_formatted_raw_no_crlf("%d,%s,%s,", (int) data->type, data->key, da16k_value_buffer);
+            break;
+        default:
+            break;
     }
-    return da16k_create_msg_str(key, da16k_value_buffer);
+
+    return DA16K_INVALID_PARAMETER;
 }
 
-da16k_msg_t *da16k_create_msg_uint(const char *key, uint64_t value) {
-    snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), "%" PRIu64, value);
-    return da16k_create_msg_str(key, da16k_value_buffer);
-}
+da16k_err_t da16k_send_msg (const da16k_msg_t *msg) {
+    da16k_err_t ret = DA16K_SUCCESS;
 
-da16k_msg_t *da16k_create_msg_int(const char *key, int64_t value) {
-    snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), "%" PRIi64, value);
-    return da16k_create_msg_str(key, da16k_value_buffer);
-}
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg);
+    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg->data);
 
-da16k_msg_t *da16k_create_msg_bool(const char *key, bool value) {
-    snprintf(da16k_value_buffer, sizeof(da16k_value_buffer), value ? "true" : "false");
-    return da16k_create_msg_str(key, da16k_value_buffer);
+    /* Initiate message, note that no CRLF is sent here. Space is important...*/
+    if (DA16K_SUCCESS != (ret = da16k_at_send_formatted_raw_no_crlf("AT+NWICEXMSG "))) {
+        DA16K_ERROR("Failed to initiate message\r\n");
+        return ret;
+    }
+
+    /* Send all data tuples */
+    for (size_t i = 0; i < msg->data_count; i++) {
+        if (DA16K_SUCCESS != (ret = da16k_send_msg_data(&msg->data[i]))) {
+            DA16K_ERROR("Failed to send message data");
+            return ret;
+        }
+
+        /* Maximum of 4 tuples at a time */
+        if (i % 4 == 3) {
+            if      ((DA16K_SUCCESS != (ret = da16k_at_send_formatted_and_check_success(s_network_timeout_ms, "+NWICEXMSG", "")))
+                ||   (DA16K_SUCCESS != (ret = da16k_at_send_formatted_raw_no_crlf("AT+NWICEXMSG ")))) {
+                DA16K_ERROR("Failed to send & restart message during loop.\r\n");
+                return ret;
+            }
+        }
+    }
+
+    /* Finalize with empty string, \r\n will be added by this function */
+    return da16k_at_send_formatted_and_check_success(s_network_timeout_ms, "+NWICEXMSG", "");
 }
 
 void da16k_destroy_msg(da16k_msg_t *msg) {
     if (msg) {
-        da16k_free(msg->key);
-        da16k_free(msg->value);
+        if (msg->data) {
+            for (size_t i = 0; i < msg->data_count; i++) {
+                da16k_free((void*) msg->data[i].key);
+
+                if (msg->data[i].type == DA16K_AT_STRING) {
+                    da16k_free((void*) msg->data[i].value.d_string);
+                }
+            }
+
+            da16k_free(msg->data);
+        }
         da16k_free(msg);
     }
 }
 
-/* Helper functions for direct sending and destroying (for basic, non-threaded applications) */
-
-/*  Sends a message directly and destroys it immediately after.
-    Since it is used from within these wrappers after creation of msg, 
-    it returns DA16K_OUT_OF_MEMORY on NULL pointers instead of DA16K_INVALID_PARAMETER as other functions. */
-static da16k_err_t da16k_check_send_and_destroy_msg(da16k_msg_t *msg) {
-    da16k_err_t ret;
-
-    DA16K_RETURN_ON_NULL(DA16K_OUT_OF_MEMORY, msg);
-    DA16K_RETURN_ON_NULL(DA16K_OUT_OF_MEMORY, msg->key);
-    DA16K_RETURN_ON_NULL(DA16K_OUT_OF_MEMORY, msg->value);
-
-    ret = da16k_send_msg(msg);
-    da16k_destroy_msg(msg);
-    return ret;
-}
+/* Helper functions for direct sending (for basic, non-threaded applications) */
 
 da16k_err_t da16k_send_msg_direct_str(const char *key, const char *value) {
-    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, key);
-    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, value);
-    return da16k_check_send_and_destroy_msg(da16k_create_msg_str(key, value));
-}
+    da16k_msg_data_t    data    = { .key = key,
+                                    .type = DA16K_AT_STRING,
+                                    .value.d_string = value };
+    da16k_msg_t         msg     = { .data = &data,
+                                    .data_capacity = 1,
+                                    .data_count = 1 };
 
-da16k_err_t da16k_send_msg_direct_float(const char *key, double value) {
-    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, key);
-    return da16k_check_send_and_destroy_msg(da16k_create_msg_float(key, value));
-}
-
-da16k_err_t da16k_send_msg_direct_uint(const char *key, uint64_t value) {
-    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, key);
-    return da16k_check_send_and_destroy_msg(da16k_create_msg_uint(key, value));
-}
-
-da16k_err_t da16k_send_msg_direct_int(const char *key, int64_t value) {
-    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, key);
-    return da16k_check_send_and_destroy_msg(da16k_create_msg_int(key, value));
+    /* send_msg and send_msg_data do error checking, so not needed here */
+    return da16k_send_msg(&msg);
 }
 
 da16k_err_t da16k_send_msg_direct_bool(const char *key, bool value) {
-    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, key);
-    return da16k_check_send_and_destroy_msg(da16k_create_msg_bool(key, value));
+    da16k_msg_data_t    data    = { .key = key,
+                                    .type = DA16K_AT_BOOL,
+                                    .value.d_bool = value };
+    da16k_msg_t         msg     = { .data = &data,
+                                    .data_capacity = 1,
+                                    .data_count = 1 };
+    return da16k_send_msg(&msg);
 }
 
-da16k_err_t da16k_send_msg(da16k_msg_t *msg) {
-    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg);
-    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg->key);
-    DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg->value);
-
-    return da16k_at_send_formatted_and_check_success(s_network_timeout_ms, NULL, "AT+NWICMSG %s,%s", msg->key, msg->value);
+da16k_err_t da16k_send_msg_direct_num(const char *key, double value) {
+    da16k_msg_data_t    data    = { .key = key,
+                                    .type = DA16K_AT_FLOAT64,
+                                    .value.d_float64 = value };
+    da16k_msg_t         msg     = { .data = &data,
+                                    .data_capacity = 1,
+                                    .data_count = 1 };
+    return da16k_send_msg(&msg);
 }
 
 da16k_err_t da16k_set_iotc_connection_type(da16k_iotc_mode_t type) {
