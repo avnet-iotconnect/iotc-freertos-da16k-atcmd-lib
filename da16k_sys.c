@@ -87,17 +87,6 @@ bool da16k_double_to_ascii_hex (char *dst, double value) {
     return da16k_bytes_to_ascii_hex(dst, (void *) &value, sizeof(double));
 }
 
-/*  Reallocates an argv array. The difference to a regular realloc is the following:
-    In case of unsuccessful allocation, in addition to returning NULL,
-    the old argv's entries are also free'd properly. */
-static char **da16k_realloc_argv(char **old_argv, size_t old_argc, size_t new_argc) {
-    char **new_argv = da16k_malloc(new_argc * sizeof(char *));
-
-    if (new_argv != NULL) {
-        memcpy(new_argv, old_argv, old_argc * sizeof(char *));
-        da16k_free(old_argv);
-    } else {
-        da16k_destroy_argv(old_argv, old_argc);
     }
 
     return new_argv;
