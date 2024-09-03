@@ -49,6 +49,8 @@ char *da16k_strndup(const char *src, size_t size) {
     return ret;
 }
 
+/*  Converts a set of bytes to an ascii hex representation for use in the DA16K AT protocol
+    The protocol is BIG ENDIAN, so on little endian systems the endianness will be swapped in the output. */
 static bool da16k_bytes_to_ascii_hex(char *dst, void *src, size_t length) {
     const uint8_t *c_src = (const uint8_t *) src;
 

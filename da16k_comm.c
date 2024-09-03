@@ -263,7 +263,7 @@ da16k_err_t da16k_msg_add_num(da16k_msg_t *msg, const char *key, double value) {
     return da16k_msg_add_internal(msg, &data);
 }
 
-/* Sends a single piece of */
+/* Sends a single piece of telemetry data as part of a larger command transmission */
 static da16k_err_t da16k_send_msg_data(const da16k_msg_data_t *data) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, data);
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, data->key);
