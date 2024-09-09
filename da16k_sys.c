@@ -86,8 +86,3 @@ bool da16k_bool_to_ascii_hex (char *dst, bool value) {
 bool da16k_double_to_ascii_hex (char *dst, double value) {
     return da16k_bytes_to_ascii_hex(dst, (void *) &value, sizeof(double));
 }
-
-    }
-
-    return new_argv;
-}
