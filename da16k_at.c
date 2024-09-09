@@ -138,6 +138,7 @@ static bool da16k_at_is_line_only_whitespace(const char *str) {
         if (*str > ' ') { /* everything above the space character makes the string valid. */
             return false;
         }
+        str++;
     }
 
     return true;
