@@ -293,31 +293,31 @@ da16k_err_t da16k_send_msg (const da16k_msg_t *msg) {
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg);
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, msg->data);
 
-    /* Initiate message, note that no CRLF is sent here. Space is important...*/
-    if (DA16K_SUCCESS != (ret = da16k_at_send_formatted_raw_no_crlf("AT+NWICEXMSG "))) {
-        DA16K_ERROR("Failed to initiate message\r\n");
-        return ret;
-    }
-
-    /* Send all data tuples */
+    /* Iterate through all data tuples */
     for (size_t i = 0; i < msg->data_count; i++) {
-        if (DA16K_SUCCESS != (ret = da16k_send_msg_data(&msg->data[i]))) {
-            DA16K_ERROR("Failed to send message data");
-            return ret;
+        /* If we're at the start of a bulk message initiate it, note that no CRLF is sent here. Space is important...*/
+        if ((i % DA16K_MSG_TUPLES_PER_ITERATION) == 0 && DA16K_SUCCESS != (ret = da16k_at_send_formatted_raw_no_crlf("AT+NWICEXMSG "))) {
+            DA16K_ERROR("Failed to initiate message\r\n");
+            break;
         }
 
-        /* Maximum of 4 tuples at a time */
-        if (i % 4 == 3) {
-            if      ((DA16K_SUCCESS != (ret = da16k_at_send_formatted_and_check_success(s_network_timeout_ms, "+NWICEXMSG", "")))
-                ||   (DA16K_SUCCESS != (ret = da16k_at_send_formatted_raw_no_crlf("AT+NWICEXMSG ")))) {
-                DA16K_ERROR("Failed to send & restart message during loop.\r\n");
-                return ret;
+        /* Send actual tuple data */
+        if (DA16K_SUCCESS != (ret = da16k_send_msg_data(&msg->data[i]))) {
+            DA16K_ERROR("Failed to send message tuple data\r\n");
+            break;
+        }
+
+        /* Maximum of DA16K_MSG_TUPLES_PER_ITERATION tuples at a time & force send if it's the last message */
+        if ((i % DA16K_MSG_TUPLES_PER_ITERATION) == (DA16K_MSG_TUPLES_PER_ITERATION - 1) || i == (msg->data_count - 1)) {
+            /* Finalize with empty string, \r\n will be added by this function */
+            if (DA16K_SUCCESS != (ret = da16k_at_send_formatted_and_check_success(s_network_timeout_ms, "+NWICEXMSG", ""))) {
+                DA16K_ERROR("Failed to finalize/validate message\r\n");
+                break;
             }
         }
     }
 
-    /* Finalize with empty string, \r\n will be added by this function */
-    return da16k_at_send_formatted_and_check_success(s_network_timeout_ms, "+NWICEXMSG", "");
+    return ret;
 }
 
 void da16k_destroy_msg(da16k_msg_t *msg) {

@@ -31,6 +31,8 @@ typedef enum {
 #define YELLOW_COLOR            "\33[1;33m"
 #define CLEAR_COLOR             "\33[0m"
 
+/* Refer to AT Command protocol */
+#define DA16K_MSG_TUPLES_PER_ITERATION (8)
 #define DA16K_CONFIG_PRINT_DEBUG
 #define DA16K_CONFIG_PRINT_WARN
 
