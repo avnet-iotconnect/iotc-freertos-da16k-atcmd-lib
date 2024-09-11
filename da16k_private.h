@@ -33,6 +33,7 @@ typedef enum {
 
 /* Refer to AT Command protocol */
 #define DA16K_MSG_TUPLES_PER_ITERATION (8)
+
 #define DA16K_CONFIG_PRINT_DEBUG
 #define DA16K_CONFIG_PRINT_WARN
 
@@ -60,6 +61,7 @@ typedef enum {
 void       *da16k_malloc                (size_t size);
 void        da16k_free                  (void *ptr);
 char       *da16k_strdup                (const char *src);
+char       *da16k_strndup               (const char *src, size_t size);
 /* Encodes a boolean to ASCII hex. dst MUST be 3 (2 + null terminator) bytes long at least. */
 bool        da16k_bool_to_ascii_hex     (char *dst, bool value);
 /* Encodes a double to ASCII hex. dst MUST be 17 (16 + null terminator) bytes long at least. */

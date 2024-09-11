@@ -342,7 +342,7 @@ void da16k_destroy_msg(da16k_msg_t *msg) {
 da16k_err_t da16k_send_msg_direct_str(const char *key, const char *value) {
     da16k_msg_data_t    data    = { .key = key,
                                     .type = DA16K_AT_STRING,
-                                    .value.d_string = value };
+                                    .value.d_string = (char *) value };
     da16k_msg_t         msg     = { .data = &data,
                                     .data_capacity = 1,
                                     .data_count = 1 };
