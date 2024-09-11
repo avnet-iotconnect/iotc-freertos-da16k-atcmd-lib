@@ -61,18 +61,18 @@ static bool da16k_bytes_to_ascii_hex(char *dst, void *src, size_t length) {
         return false;
     }
 
-#if defined(__LITTLE_ENDIAN__)
+#if defined(__ATCMD_LITTLE_ENDIAN__)
     for (size_t i = length; i > 0; i--) {
         sprintf(dst, "%02x", c_src[i-1]);
         dst += 2;
     }
-#elif defined(__BIG_ENDIAN__)
+#elif defined(__ATCMD_BIG_ENDIAN__)
     for (size_t i = 0; i < length; i++) {
         sprintf(dst, "%02x", c_src[i]);
         dst += 2;
     }
 #else
-    #error "Endianness unknown. Please define __LITTLE_ENDIAN__ or __BIG_ENDIAN__."
+    #error "Endianness unknown. Please define __ATCMD_LITTLE_ENDIAN__ or __ATCMD_BIG_ENDIAN__."
 #endif
 
     return true;
