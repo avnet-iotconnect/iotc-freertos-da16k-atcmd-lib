@@ -133,8 +133,8 @@ da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
 #else
     if (sizeof(double) != 8 || sizeof(float) != 4) {
         DA16K_PRINT("Your platform has unexpected floating point formats!\r\n");
-        DA16K_PRINT("   (sizeof(float) expected %u, have %u)\r\n", 8, sizeof(double));
-        DA16K_PRINT("   (sizeof(float) expected %u, have %u)\r\n", 4, sizeof(float));
+        DA16K_PRINT("   (sizeof(double) expected %u, have %u)\r\n", 8, sizeof(double));
+        DA16K_PRINT("   (sizeof(float)  expected %u, have %u)\r\n", 4, sizeof(float));
         return DA16K_NOT_INITIALIZED;
     }
 #endif
