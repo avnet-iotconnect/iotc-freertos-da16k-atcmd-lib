@@ -17,6 +17,7 @@
 
 #include <string.h>
 #include <inttypes.h>
+#include <assert.h>
 
 #include "da16k_uart.h"
 
@@ -126,6 +127,17 @@ da16k_err_t da16k_init(const da16k_cfg_t *cfg) {
     da16k_err_t ret = DA16K_SUCCESS;
 
     DA16K_RETURN_ON_NULL(DA16K_INVALID_PARAMETER, cfg);
+
+#if defined(static_assert)
+    static_assert(sizeof(double) == 8 && sizeof(float) == 4, "Unexpected floating point size, check your compiler/c-library!");
+#else
+    if (sizeof(double) != 8 || sizeof(float) != 4) {
+        DA16K_PRINT("Your platform has unexpected floating point formats!\r\n");
+        DA16K_PRINT("   (sizeof(float) expected %u, have %u)\r\n", 8, sizeof(double));
+        DA16K_PRINT("   (sizeof(float) expected %u, have %u)\r\n", 4, sizeof(float));
+        return DA16K_NOT_INITIALIZED;
+    }
+#endif
 
     /* UART Init */
     if (!da16k_uart_init()) {
