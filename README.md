@@ -16,6 +16,8 @@ This repository contains code that uses the AT command interface provided by the
 
 Obtain or build the images for your Dialog 16200/16600-based device via the [IoTConnect Dialog 16K SDK repository](https://github.com/avnet-iotconnect/iotc-dialog-da16k-sdk).
 
+**The minimum version of the DA16K IOTCONNECT Firmware is 1.1.0**
+
 Boot and configure it as per the [Quickstart guide](https://github.com/avnet-iotconnect/iotc-dialog-da16k-sdk/blob/main/doc/QUICKSTART.md):
 
 * WiFi connectivity
@@ -169,20 +171,20 @@ Sending out telemetry after the successful initialization is done by serializing
 
 The general principle is as follows:
 
-* Call `da16k_create_msg_*` for the appropriate data type (see below)
+* Call `da16k_create_msg` to create the message
+* Call `da16k_msg_add_*` for the appropriate data type (see below)
 * Call `da16k_send_msg` once you are ready to send it out
 * Call `da16k_destroy_msg` to dispose of it and free the memory
 
 The following are declared in `da16k_comm.h`.
 
-| Function                      | Parameter     | IoTConnect Type |
-|-------------------------------|---------------|-----------------|
-| `da16k_create_msg_str`        | `const char*` | STRING          |
-| `da16k_create_msg_float`      | `double`      | DECIMAL         |
-| `da16k_create_msg_uint`       | `uint64_t`    | INTEGER         |
-| `da16k_create_msg_int`        | `int64_t`     | INTEGER         |
-| `da16k_create_msg_bool`       | `bool`        | BOOLEAN         |
+| Function                      | Parameter     | IoTConnect Type   |
+|-------------------------------|---------------|-------------------|
+| `da16k_msg_add_str`           | `const char*` | STRING            |
+| `da16k_msg_add_bool`          | `bool`        | BOOLEAN           |
+| `da16k_msg_add_num`           | `double`      | DECIMAL / INTEGER |
 
+Due to the way that numeric values are handled in the underlying libraries on the module, numeric values are always double precision floating point values.
 
 ## Sending out Telemetry Directly (Simplified Direct Create-and-Send)
 
@@ -190,13 +192,11 @@ If your application is simple, single-threaded or otherwise non-critical, you ma
 
 The following functions create the message, send it and dispose of it internally, and directly return a `da16k_err_t` retrun code.
 
-| Function                      | Parameter     | IoTConnect Type |
-|-------------------------------|---------------|-----------------|
-| `da16k_send_msg_direct_str`   | `const char*` | STRING          |
-| `da16k_send_msg_direct_float` | `double`      | DECIMAL         |
-| `da16k_send_msg_direct_uint`  | `uint64_t`    | INTEGER         |
-| `da16k_send_msg_direct_int`   | `int64_t`     | INTEGER         |
-| `da16k_send_msg_direct_bool`  | `bool`        | BOOLEAN         |
+| Function                      | Parameter     | IoTConnect Type   |
+|-------------------------------|---------------|-------------------|
+| `da16k_send_msg_direct_str`   | `const char*` | STRING            |
+| `da16k_send_msg_direct_bool`  | `bool`        | BOOLEAN           |
+| `da16k_send_msg_direct_num`   | `double`      | DECIMAL / INTEGER |
 
 ## Receiving IoTConnect Cloud to Device Commands
 
@@ -300,8 +300,8 @@ void telemetry_grabber_entry(void *pvParameters)
 
         /* Renesas HS3001 */
 
-        da16k_send_msg_direct_float("hs3001_humidity",    hs300xDataToFloat(&newSensorData.hs300x.hs300x_data.humidity));
-        da16k_send_msg_direct_float("hs3001_temperature", hs300xDataToFloat(&newSensorData.hs300x.hs300x_data.temperature));
+        da16k_send_msg_direct_num("hs3001_humidity",    hs300xDataToFloat(&newSensorData.hs300x.hs300x_data.humidity));
+        da16k_send_msg_direct_num("hs3001_temperature", hs300xDataToFloat(&newSensorData.hs300x.hs300x_data.temperature));
         (...)
     }
 }

@@ -178,8 +178,12 @@ void da16k_uart_close(void) {
  */
 
 void ek_ra6m4_printf(const char *format, ...) {
-    /* TODO */
-    (void) format;
+    char tmp_buf[EK_RA6M4_PRINTF_BUFFER_SIZE] = { 0, };
+    va_list args;
+    va_start(args, format);
+    vsnprintf(tmp_buf, EK_RA6M4_PRINTF_BUFFER_SIZE, format, args);
+    va_end(args);
+    print_to_console(tmp_buf);
 }
 
 #endif

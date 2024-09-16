@@ -31,6 +31,9 @@ typedef enum {
 #define YELLOW_COLOR            "\33[1;33m"
 #define CLEAR_COLOR             "\33[0m"
 
+/* Refer to AT Command protocol */
+#define DA16K_MSG_TUPLES_PER_ITERATION (8)
+
 #define DA16K_CONFIG_PRINT_DEBUG
 #define DA16K_CONFIG_PRINT_WARN
 
@@ -51,14 +54,18 @@ typedef enum {
 #define DA16K_ERROR(fmt, ...) do { DA16K_PRINT(RED_COLOR    "[%s:%d] " fmt CLEAR_COLOR, __func__, __LINE__, ##__VA_ARGS__); } while (0)
 
 /* Helper macro to cleanly return a meaningful error on NULL whilst informing user properly */
-#define DA16K_RETURN_ON_NULL(return_value, ptr) if (ptr == NULL) { DA16K_ERROR("ERROR - " #ptr " is NULL!\r\n"); return return_value; }
+#define DA16K_RETURN_ON_NULL(return_value, ptr) if (ptr == NULL) { DA16K_ERROR("ERROR - '" #ptr "' is NULL! Result = '" #return_value "'\r\n"); return return_value; }
 
 /* System & Utilities (da16k_sys.c) */
 
-void   *da16k_malloc            (size_t size);
-void    da16k_free              (void *ptr);
-char   *da16k_strdup            (const char *src);
-bool    da16k_double_to_string  (char *buf, size_t buf_size, volatile double value);
+void       *da16k_malloc                (size_t size);
+void        da16k_free                  (void *ptr);
+char       *da16k_strdup                (const char *src);
+char       *da16k_strndup               (const char *src, size_t size);
+/* Encodes a boolean to ASCII hex. dst MUST be 3 (2 + null terminator) bytes long at least. */
+bool        da16k_bool_to_ascii_hex     (char *dst, bool value);
+/* Encodes a double to ASCII hex. dst MUST be 17 (16 + null terminator) bytes long at least. */
+bool        da16k_double_to_ascii_hex   (char *dst, double value);
 
 /* internal AT protocol functionality (da16k_at.c) */
 
@@ -77,13 +84,22 @@ bool    da16k_double_to_string  (char *buf, size_t buf_size, volatile double val
     If expected_response is NULL, only an incoming "OK" will be verified, nothing else.
     In this case, an incoming OK will automatically be interpreted as success and response parsing will stop there.
     This is useful for commands that expect nothing other than an "OK".
-    
+
     On DA16K_SUCCESS, the response can then be obtained either as a string or integer. */
 da16k_err_t da16k_at_receive_and_validate_response          (bool error_possible, const char *expected_response, uint32_t timeout_ms);
 /*  Send a printf-style formatted string to the DA16K module. This string would contain a valid AT command of some sort. 
-    
+
+    \r\n is added by this function automatically.
+
     The caller must receive and validate the response using da16k_at_receive_and_validate_response. */
 da16k_err_t da16k_at_send_formatted_msg                     (const char *format, ...);
+/*  Send a printf-style formatted string to the DA16K module.
+    Does not add a \r\n at the end.
+
+    Can be used in multi-part command sending. Beware that at the end you still need to send a \r\n and validate the response.
+
+    You may also finalize the command by calling da16k_at_send_formatted_and_check_success with an empty format string. */
+da16k_err_t da16k_at_send_formatted_raw_no_crlf             (const char *format, ...);
 /*  AT Commands that get a simple +EXAMPLE:<x> response and <x> is expected to be 1 for success
     can use this wrapper to do everything in a single function call to aid readability and code deduplication.
 
@@ -91,6 +107,8 @@ da16k_err_t da16k_at_send_formatted_msg                     (const char *format,
     In this case, expected_response may be set to NULL, and only an incoming "OK" will be verified, nothing else.
 
     The repsonse does not to be validated or retreived by the caller.
+
+    \r\n is added by this function automatically.
 
     returns DA16K_SUCCESS if the command was sent out successfully, the response was proper and had a return code of 1. */
 da16k_err_t da16k_at_send_formatted_and_check_success       (uint32_t timeout_ms, const char *expected_response, const char *format, ...);

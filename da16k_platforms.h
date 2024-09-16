@@ -46,4 +46,19 @@ void ek_ra6m4_printf(const char *format, ...);
 #define DA16K_CONFIG_FREERTOS
 #endif
 
+/* System endianness helper */
+# if    (defined(__BIG_ENDIAN__)) || \
+        (defined(__BYTE_ORDER__)  && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__) || \
+        (defined(__BYTE_ORDER)    && __BYTE_ORDER   == __BIG_ENDIAN) || \
+        (defined(_BYTE_ORDER)     && _BYTE_ORDER    == _BIG_ENDIAN) || \
+        (defined(BYTE_ORDER)      && BYTE_ORDER     == BIG_ENDIAN)
+#       define __ATCMD_BIG_ENDIAN__
+# elif  (defined(__LITTLE_ENDIAN__)) || \
+        (defined(__BYTE_ORDER__)  && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__) || \
+        (defined(__BYTE_ORDER)    && __BYTE_ORDER   == __LITTLE_ENDIAN) || \
+        (defined(_BYTE_ORDER)     && _BYTE_ORDER    == _LITTLE_ENDIAN) || \
+        (defined(BYTE_ORDER)      && BYTE_ORDER     == LITTLE_ENDIAN)
+#       define __ATCMD_LITTLE_ENDIAN__
+#endif
+
 #endif /* DA16K_COMM_DA16K_PLATFORMS_H_ */

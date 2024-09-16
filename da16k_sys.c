@@ -10,6 +10,9 @@
 #include "da16k_private.h"
 
 #include <stdio.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <limits.h>
 
 /* Wrappers for external functions that may be unreliable / redefined */
 
@@ -34,62 +37,52 @@ char *da16k_strdup(const char *src) {
     return ret;
 }
 
-/* Converts a double to a string, exists because on embedded we cannot be sure %f is supported */
-bool da16k_double_to_string(char *buf, size_t buf_size, volatile double value) {
-    long        integer             = (long) value;
-    int         chars_written       = buf ? snprintf(buf, buf_size, "%ld.", integer) : 0;
-    char       *decimal_ptr         = buf + (size_t) chars_written;
-    const char *upper_bound         = buf + buf_size - 1;
+char *da16k_strndup(const char *src, size_t size) {
+    size_t str_size = size + 1; /* + 1 for null terminator */
+    char *ret = da16k_malloc(str_size);
 
-    DA16K_RETURN_ON_NULL(false, buf);
+    if (ret) {
+        memcpy(ret, src, str_size);
+        ret[size] = 0x00;
+    }
 
-    /* need to at least be able to fit 4 digits, e.g. -1.0 + null terminator*/
-    if (chars_written <= 0 || buf_size < 5) {
+    return ret;
+}
+
+/*  Converts a set of bytes to an ascii hex representation for use in the DA16K AT protocol
+    The protocol is BIG ENDIAN, so on little endian systems the endianness will be swapped in the output. */
+static bool da16k_bytes_to_ascii_hex(char *dst, void *src, size_t length) {
+    const uint8_t *c_src = (const uint8_t *) src;
+
+    DA16K_RETURN_ON_NULL(false, src);
+    DA16K_RETURN_ON_NULL(false, dst);
+
+    if (length > INT_MAX) {
         return false;
     }
 
-    /* Get absolute value because we don't need the sign anymore; simplifies adjustments below */
-    if (value < 0.0) {
-        value *= -1.0;
-        integer *= -1;
+#if defined(__ATCMD_LITTLE_ENDIAN__)
+    for (size_t i = length; i > 0; i--) {
+        sprintf(dst, "%02x", c_src[i-1]);
+        dst += 2;
     }
-
-    /* Write decimal part, up to 8 chars */
-
-    for (size_t i = 0; i < 8; ++i) {
-        if (decimal_ptr >= upper_bound) {
-            if (i > 0) {
-                /* We have some digits, we can truncate */
-                break;
-            } else {
-                /* Catastrophic failure, abort. */
-                return false;
-            }
-        }
-
-        value = (value - (double) integer) * (double) 10;
-        integer = (long) value;
-        *decimal_ptr = '0' + (char) integer;
-        decimal_ptr++;
-        *decimal_ptr = 0x00;
+#elif defined(__ATCMD_BIG_ENDIAN__)
+    for (size_t i = 0; i < length; i++) {
+        sprintf(dst, "%02x", c_src[i]);
+        dst += 2;
     }
-
-    /* Trim all the trailing zeroes. decimal_ptr points to the null terminator at this moment. */
-
-    decimal_ptr--;
-
-    while ((decimal_ptr > buf) && decimal_ptr[0] == '0') {
-        *decimal_ptr = 0x00;
-        decimal_ptr--;
-    }
-
-    /* Don't make it end with a period (e.g. "1.")*/
-
-    if (decimal_ptr[0] == '.') {
-        decimal_ptr[1] = '0';
-    }
+#else
+    #error "Endianness unknown. Please define __ATCMD_LITTLE_ENDIAN__ or __ATCMD_BIG_ENDIAN__."
+#endif
 
     return true;
 }
 
+bool da16k_bool_to_ascii_hex (char *dst, bool value) {
+    uint8_t temp = value ? 0x01 : 0x00;
+    return da16k_bytes_to_ascii_hex(dst, (void *) &temp, sizeof(uint8_t));
+}
 
+bool da16k_double_to_ascii_hex (char *dst, double value) {
+    return da16k_bytes_to_ascii_hex(dst, (void *) &value, sizeof(double));
+}
