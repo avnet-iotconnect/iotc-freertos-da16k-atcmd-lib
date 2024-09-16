@@ -10,7 +10,7 @@ This repository contains code that uses the AT command interface provided by the
 * Renesas CK-RA6M5 v2 Cloud Kit (PMOD connector)
     * Demo project: https://github.com/avnet-iotconnect/iotc-freertos-CK-RA6M5-V2-PMOD
 
-## Setup on a new or existing project
+## Setup on a New or Existing Project
 
 ### Step 1: Set up Dialog 16200/16600 Device with IoTConnect
 
@@ -40,9 +40,7 @@ Using this code is aimed to be as straight-forward as possible:
 
 * Include `da16k_comm.h`
 
-* Call `da16k_init` with an empty `da16k_cfg` structure.
-
-    At the moment, there are no configurable parameters.
+* Call `da16k_init` with a `da16k_cfg` structure.
 
 * Start communicating with IoTConnect by using the `da16k_send_<x>` functions for your appropriate data type.
 
@@ -50,7 +48,7 @@ Using this code is aimed to be as straight-forward as possible:
 
 * Call `da16k_deinit` once you are finished.
 
-## Must-Implement functions to use this library
+## Must-Implement Functions to Integrate Library with New Platform
 
 If you wish to use this code on any platform, it is only necessary to implement a C file with the following basic functions for communicating via UART, declared in `da16k_uart.h`, and link it.
 
@@ -84,7 +82,7 @@ By setting this define to a file name (e.g. `-DDA16K_CONFIG_FILE="../da16k_comm_
 
 An example configuration file is provided (`da16k_config_example`).
 
-## Platform-specific configuration parameters
+## Platform-specific Configuration Parameters
 
 Please refer to [the PLATFORMS document.](./PLATFORMS.md)
 
@@ -98,9 +96,74 @@ Please refer to [the PLATFORMS document.](./PLATFORMS.md)
 
 * `DA16K_CONFIG_FREE_FN` - Can be defined to point to a `free`-style memory de-allocation function to override the default `free`. This will override any other implied settings (e.g. from `DA16K_CONFIG_FREERTOS`)
 
-# Using the library (application code)
+# Library Usage (Application Code)
 
-## Sending out telemetry
+This section describes how to use the library in an application.
+
+The functions generally return descriptive error codes. Please see the `da16k_err_t` enum in `da16k_comm.h` for details.
+
+## Initialization & Device Configuration
+
+To initialize the library, call `da16k_init` and supply a pointer to a `da16k_cfg_t` strcuture.
+
+This structure contains configuration parameters for the library and the AT gateway module.
+
+A comprehensive description for the members can be found in the **IoTConnect configuration/setup** section in `da16k_comm.h`.
+
+* `iotc_config` (optional)
+
+    If this is not NULL, the library will attempt to configure the IoTConnect client on the module to connect using the specified connection, device and environment parameters.
+
+    It can also be used to send a client certificate and key to the gateway for authentication, however:
+
+---
+
+<u>***WARNING:***
+
+***CLIENT CERTIFICATE TRANSMISSION IS INSECURE AND THE FUNCTIONALITY IS ONLY PROVIDED FOR TESTING PURPOSES***</u>
+
+---
+
+* `wifi_config` (optional)
+
+    If this is not NULL, the library will attempt to configure the WiFi-connection on the module to connect to the specified network and credentials.
+
+    If this is NULL, the library expects the module to be provisioned and configured to connect to a network already.
+    
+* `network_timeout_ms` (optional)
+
+    If this is not 0, this specifies the time to wait for successful completion of latency-dependent activities (i.e. sending telemetry) before flagging a time-out.
+
+    If this is 0, a sensible default value is used.
+
+
+### `da16k_iotc_cfg_t`
+
+This is a structure for setting IoTConnect connection parameters. Parameters are mostly self-explanatory, except for the device certificates:
+
+If `device_cert` and `device_key` are non-NULL, the library will transmit the certificate / key to the DA16K device so it can be used to authenticate with MQTT.
+
+---
+
+<u>***WARNING:***
+
+***CLIENT CERTIFICATE TRANSMISSION IS INSECURE AND THE FUNCTIONALITY IS ONLY PROVIDED FOR TESTING PURPOSES.*** 
+
+***IN A PRODUCTION ENVIRONMENT, SET `device_cert` and `device_key` TO NULL AND PROVISION THE AT GATEWAY PROPERLY PRIOR TO USING THIS LIBRARY WITH IT.***</u>
+
+---
+
+### `da16k_wifi_cfg_t`
+
+This is a structure for setting WiFi parameters. The Parameters are self-explanatory.
+
+### Manual Configuration Parameter Setup at Runtime
+
+While discouraged, this is possible using the `da16k_set_<x>` functions.
+
+Refer to `da16k_comm.h` for details.
+
+## Sending out Telemetry
 
 Sending out telemetry after the successful initialization is done by serializing (creating) a message (`da16k_msg_t`), sending it and freeing it.
 
@@ -121,7 +184,7 @@ The following are declared in `da16k_comm.h`.
 | `da16k_create_msg_bool`       | `bool`        | BOOLEAN         |
 
 
-## Sending out telemetry directly (simplified direct create-and-send)
+## Sending out Telemetry Directly (Simplified Direct Create-and-Send)
 
 If your application is simple, single-threaded or otherwise non-critical, you may choose to send the telemetry out directly.
 
@@ -135,17 +198,50 @@ The following functions create the message, send it and dispose of it internally
 | `da16k_send_msg_direct_int`   | `int64_t`     | INTEGER         |
 | `da16k_send_msg_direct_bool`  | `bool`        | BOOLEAN         |
 
-## Error handling
+## Receiving IoTConnect Cloud to Device Commands
 
-The functions return descriptive error codes. Please see the `da16k_err_t` enum in `da16k_comm.h` for details.
+Commands from the cloud are stored on the AT gateway internally on a command queue.
 
-# Usage example from scratch: Renesas CK-RA6M5 v2 with e² Studio IDE
+Commands can be retreived from the AT Gateway using `da16k_get_cmd`.
+
+It takes a pointer to a blank `da16k_cmd_t` structure as a parameter and returns a `da16k_err_t`.
+
+In the case of `DA16K_SUCCESS`, the provided structure is filled with the oldest available command.
+
+**The command must be disposed of after usage to avoid memory leaks (see below)**
+
+If no commands have been sent, `DA16K_NO_CMDS` is returned instead.
+
+### Limitations
+
+At this time, commands are acknowledged by the AT gateway automatically, regardless of whether or not they have been fetched by the user, executed successfully or not. This will change in a future version.
+
+### Handling a Received Command (`da16k_cmd_t`).
+
+The structure has two string members, `command` and `parameters`.
+
+Parameters are optional and NULL if none were sent.
+
+After handling the command, the strucutre must be disposed of using `da16k_destroy_cmd`. The structure is given to it as parameter directly, *not* a pointer.
+
+### Example Command Handling
+
+```c
+    da16k_cmd_t current_cmd = {0};
+
+    if ((da16k_get_cmd(&current_cmd) == DA16K_SUCCESS) && current_cmd.command) {
+        /* do something */
+        da16k_destroy_cmd(current_cmd);
+    }
+```
+
+# Library Integration Example from Scratch: Renesas CK-RA6M5 v2 (e² Studio IDE)
 
 Imagining a scenario with an existing project (e.g. the Quickstart sample project from Renesas, `quickstart_ck_ra6m5_v2_ep`) on the CK-RA6M5 v2 development board, we wish to connect a Dialog 16600 PMOD module to the **PMOD1** connector and communicate with it. 
 
 Proceed as follows.
 
-### Project configuration
+### Project Configuration
 
 * Open the **Stacks Configuration** window by double clicking on `configuration.xml`.
 
